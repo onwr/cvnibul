@@ -1984,48 +1984,6 @@ const TemplateRenderer = ({
               )
             )}
 
-            {/* Tuttuğu Takımlar */}
-            {isSectionVisible("teams") &&
-            formData.tuttuguTakimlar &&
-            formData.tuttuguTakimlar.length > 0 ? (
-              <EditableSidebarSection
-                title="Tuttuğu Takımlar"
-                icon={<FiAward className="w-5 h-5" />}
-                sectionKey="teams"
-                items={formData.tuttuguTakimlar}
-                isEditing={isEditing}
-                onEdit={onEditItem}
-                onDelete={onDeleteItem}
-                onMoveUp={onMoveUp}
-                onMoveDown={onMoveDown}
-                customization={customization}
-                onToggleSectionVisibility={onToggleSectionVisibility}
-                renderContent={(takim, index) => (
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">⚽</span>
-                    <span className="text-sm">{takim.takimAdi}</span>
-                  </div>
-                )}
-              />
-            ) : (
-              isEditing && (
-                <EditableSidebarSection
-                  title="Tuttuğu Takımlar"
-                  icon={<FiAward className="w-5 h-5" />}
-                  sectionKey="teams"
-                  items={[]}
-                  isEditing={isEditing}
-                  onEdit={onEditItem}
-                  onDelete={onDeleteItem}
-                  onMoveUp={onMoveUp}
-                  onMoveDown={onMoveDown}
-                  renderContent={() => null}
-                  customization={customization}
-                  onToggleSectionVisibility={onToggleSectionVisibility}
-                />
-              )
-            )}
-
             {/* Görüntülenme ve Beğeni */}
             {!isEditing && (
               <div className="mt-6 pt-6 border-t border-white/20">
@@ -2934,12 +2892,121 @@ const TemplateRenderer = ({
                 )
               )}
 
+              {/* Tuttuğu Takımlar */}
+              {isSectionVisible("teams") &&
+              formData.tuttuguTakimlar &&
+              formData.tuttuguTakimlar.length > 0 ? (
+                <EditableCard
+                  title="Tuttuğu Takımlar"
+                  icon={<FiAward className="w-5 h-5" />}
+                  sectionKey="teams"
+                  items={formData.tuttuguTakimlar}
+                  borderColor="border-green-300"
+                  bgColor="bg-green-100"
+                  iconColor="text-green-600"
+                  colSpan="lg:col-span-2"
+                  isEditing={isEditing}
+                  onEdit={onEditItem}
+                  onDelete={onDeleteItem}
+                  onMoveUp={onMoveUp}
+                  onMoveDown={onMoveDown}
+                  customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
+                  renderItem={(takim, index) => (
+                    <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
+                      <span className="text-2xl">⚽</span>
+                      <span className="text-gray-800 font-medium">
+                        {takim.takimAdi}
+                      </span>
+                    </div>
+                  )}
+                />
+              ) : (
+                isEditing && (
+                  <EditableCard
+                    title="Tuttuğu Takımlar"
+                    icon={<FiAward className="w-5 h-5" />}
+                    sectionKey="teams"
+                    items={[]}
+                    borderColor="border-green-300"
+                    bgColor="bg-green-100"
+                    iconColor="text-green-600"
+                    colSpan="lg:col-span-2"
+                    isEditing={isEditing}
+                    onEdit={onEditItem}
+                    onDelete={onDeleteItem}
+                    onMoveUp={onMoveUp}
+                    onMoveDown={onMoveDown}
+                    customization={customization}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
+                    renderItem={() => null}
+                  />
+                )
+              )}
+
               {/* Özel Bölümler */}
               {customSections.map((customSection) => (
                 <div key={customSection.id} className="lg:col-span-2">
                   {renderCustomSection(customSection)}
                 </div>
               ))}
+
+              {/* Yorumlar Bölümü - Sağ kısımda */}
+              {!isEditing && (
+                <div className="lg:col-span-2">
+                  <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                      <FiMessageSquare className="text-blue-500" />
+                      Yorumlar ({comments?.length || 0})
+                    </h2>
+
+                    {/* Yorum Listesi */}
+                    {comments && comments.length > 0 ? (
+                      <div className="space-y-4 mb-6">
+                        {comments.map((comment) => (
+                          <div
+                            key={comment.id}
+                            className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <FiUser className="w-5 h-5 text-gray-600" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h4 className="font-semibold text-gray-800">
+                                    {comment.authorName}
+                                  </h4>
+                                  <span className="text-sm text-gray-500">
+                                    {new Date(
+                                      comment.createdAt
+                                    ).toLocaleDateString("tr-TR")}
+                                  </span>
+                                </div>
+                                <p className="text-gray-700 leading-relaxed">
+                                  {comment.content}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 mb-6">
+                        <FiMessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600">
+                          Henüz yorum yapılmamış. İlk yorumu siz yapın!
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Yorum Formu */}
+                    {onCommentSubmit && (
+                      <CommentForm onCommentSubmit={onCommentSubmit} />
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3082,13 +3149,8 @@ const TemplateRenderer = ({
   );
 };
 
-// Comments Section Component
-const CommentsSection = ({
-  comments,
-  onCommentSubmit,
-  templateType,
-  config,
-}) => {
+// Comment Form Component
+function CommentForm({ onCommentSubmit }) {
   const [commentForm, setCommentForm] = useState({
     authorName: "",
     authorEmail: "",
@@ -3125,6 +3187,100 @@ const CommentsSection = ({
     }
   };
 
+  return (
+    <div className="border-t border-gray-200 pt-6">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Yorum Yap</h3>
+      <form onSubmit={handleCommentSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Adınız *
+            </label>
+            <div className="relative">
+              <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                type="text"
+                value={commentForm.authorName}
+                onChange={(e) =>
+                  setCommentForm({
+                    ...commentForm,
+                    authorName: e.target.value,
+                  })
+                }
+                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
+                placeholder="Adınızı girin"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email *
+            </label>
+            <div className="relative">
+              <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                type="email"
+                value={commentForm.authorEmail}
+                onChange={(e) =>
+                  setCommentForm({
+                    ...commentForm,
+                    authorEmail: e.target.value,
+                  })
+                }
+                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
+                placeholder="email@example.com"
+                required
+              />
+            </div>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Yorumunuz *
+          </label>
+          <textarea
+            value={commentForm.content}
+            onChange={(e) =>
+              setCommentForm({ ...commentForm, content: e.target.value })
+            }
+            rows={4}
+            className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 resize-none"
+            placeholder="Yorumunuzu buraya yazın..."
+            required
+          />
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={isSubmittingComment}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            {isSubmittingComment ? (
+              <span className="animate-spin">⏳</span>
+            ) : (
+              <>
+                <FiSend className="w-4 h-4" />
+                Yorum Gönder
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+      <p className="text-xs text-gray-500 mt-2">
+        * Yorumunuz admin onayından sonra yayınlanacaktır.
+      </p>
+    </div>
+  );
+}
+
+// Comments Section Component (deprecated but kept for compatibility)
+const CommentsSection = ({
+  comments,
+  onCommentSubmit,
+  templateType,
+  config,
+}) => {
   return (
     <div className="mt-12">
       <div

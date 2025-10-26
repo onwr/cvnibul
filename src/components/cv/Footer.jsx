@@ -49,10 +49,10 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/hakkinda"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Blog
+                  Hakkında
                 </a>
               </li>
             </ul>
@@ -64,7 +64,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <a
-                  href="#"
+                  href="/iletisim"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
                   İletişim
@@ -72,7 +72,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/gizlilik-politikasi"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
                   Gizlilik Politikası
@@ -80,10 +80,10 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/kullanim-kosullari"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Kullanım Şartları
+                  Kullanım Koşulları
                 </a>
               </li>
             </ul>

@@ -39,6 +39,14 @@ export default function Navigation({ isScrolled }) {
 
           {/* CTA Buttons */}
           <div className="flex items-center space-x-4">
+            {/* Hakkında Linki */}
+            <a
+              href="/hakkinda"
+              className="hidden md:block text-gray-700 hover:text-blue-600 font-medium transition-colors"
+            >
+              Hakkında
+            </a>
+
             {status === "loading" ? (
               <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
             ) : session ? (

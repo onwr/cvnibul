@@ -9,6 +9,7 @@ import Pricing from "@/components/cv/Pricing";
 import CTA from "@/components/cv/CTA";
 import Footer from "@/components/cv/Footer";
 import StepliKayitFormu from "@/components/cv/StepliKayitFormu";
+import TemplateShowcase from "@/components/cv/TemplateShowcase";
 import { FiSearch } from "react-icons/fi";
 
 export default function HomePage() {
@@ -60,6 +61,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Template Showcase */}
+      <TemplateShowcase />
 
       {/* Features Section */}
       <Features />

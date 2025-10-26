@@ -36,7 +36,7 @@ function TemplatesContent() {
   const { data: session, status } = useSession();
   const [formData, setFormData] = useState(null);
   const [selectedTheme, setSelectedTheme] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(true); // Her zaman düzenleme modu aktif
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSectionKey, setEditingSectionKey] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
@@ -2019,8 +2019,8 @@ function TemplatesContent() {
       {selectedTheme ? (
         <div
           className={`absolute inset-0 bg-gray-900 overflow-y-auto transition-all duration-300 ${
-            isEditing ? "pt-20" : ""
-          } ${!isEditing && isSidebarOpen ? "lg:ml-80" : ""}`}
+            isAdminEdit ? "pt-20" : ""
+          } ${isSidebarOpen ? "lg:ml-80" : ""}`}
         >
           {/* CV Önizleme - TemplateRenderer Component */}
           <TemplateRenderer
@@ -2146,8 +2146,8 @@ function TemplatesContent() {
         </div>
       )}
 
-      {/* Left Sidebar - Customization Panel */}
-      {!isEditing && selectedTheme && (
+      {/* Left Sidebar - Customization Panel - Her zaman göster */}
+      {selectedTheme && (
         <>
           {/* Mobile Toggle Button */}
           <button
@@ -2248,17 +2248,17 @@ function TemplatesContent() {
         </>
       )}
 
-      {/* Düzenleme Modu - Üst kısımda sabit */}
-      {isEditing && (
+      {/* Düzenleme Modu Üst Bar - Sadece admin edit modunda göster */}
+      {isAdminEdit && (
         <div className="fixed top-0 left-0 right-0 bg-emerald-400 shadow-lg z-50">
           <div className="max-w-7xl mx-auto p-4">
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-xl font-bold text-white">
-                  {isAdminEdit ? "🛡️ Admin Düzenleme Modu" : "Düzenleme Modu"} -{" "}
+                  🛡️ Admin Düzenleme Modu -{" "}
                   {selectedTheme?.name || "Profesyonel Şablon"}
                 </h1>
-                {isAdminEdit && formData && (
+                {formData && (
                   <p className="text-sm text-white/90 mt-1">
                     Kullanıcı: {formData.ad} {formData.soyad} (ID:{" "}
                     {editingUserId})
@@ -2270,7 +2270,7 @@ function TemplatesContent() {
                   onClick={handleFinishEditing}
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors"
                 >
-                  {isAdminEdit ? "Kaydet ve Yayınla" : "Sayfayı Yayınla"}
+                  Kaydet ve Yayınla
                 </button>
               </div>
             </div>

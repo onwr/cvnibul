@@ -12,7 +12,7 @@ async function getCVData(slug) {
         isActive: true,
       },
       include: {
-        user: {
+    user: {
           select: {
             name: true,
             image: true,
