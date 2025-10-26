@@ -4,6 +4,8 @@ import { useState, useEffect, Suspense, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
+
+const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false });
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiX,
@@ -27,7 +29,6 @@ const PublishModal = dynamic(
 const MapModal = dynamic(() => import("@/components/cv/MapModal"), {
   ssr: false,
 });
-const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false });
 
 function TemplatesContent() {
   const router = useRouter();
@@ -114,6 +115,9 @@ function TemplatesContent() {
       cardBg: "rgba(255, 255, 255, 0.1)", // Kart arkaplanı
       cardBorder: "rgba(255, 255, 255, 0.2)", // Kart border
     },
+
+    // Özel Bölümler (Kullanıcı tarafından oluşturulan)
+    customSections: [], // { id, title, content, visible }
   });
   const [sectionOrder, setSectionOrder] = useState([
     "contact",
@@ -134,6 +138,21 @@ function TemplatesContent() {
     "projects",
     "map",
   ]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Admin edit state'leri
+  const [isAdminEdit, setIsAdminEdit] = useState(false);
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editingCVId, setEditingCVId] = useState(null);
+
+  // Özel bölüm modal state'leri
+  const [showCustomSectionModal, setShowCustomSectionModal] = useState(false);
+  const [editingCustomSection, setEditingCustomSection] = useState(null);
+  const [customSectionAction, setCustomSectionAction] = useState("add"); // 'add', 'edit', 'delete'
+  const [customSectionForm, setCustomSectionForm] = useState({
+    title: "",
+    content: "",
+  });
 
   // Bölüm sıralaması değiştirme fonksiyonları
   const moveSectionUp = (index) => {
@@ -158,6 +177,29 @@ function TemplatesContent() {
 
   // Auto-save function (debounced)
   const saveToAPI = async (data, customizationData) => {
+    if (isAdminEdit) {
+      // Admin edit modu - özel endpoint
+      try {
+        await fetch("/api/admin/cvs", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cvId: editingCVId,
+            updates: {
+              formData: data,
+              customization: customizationData,
+              slug: customSlug,
+              templateId: selectedTheme?.id, // themeId yerine templateId
+            },
+          }),
+        });
+        console.log("Admin tarafından CV güncellendi");
+      } catch (error) {
+        console.error("Admin güncelleme hatası:", error);
+      }
+      return;
+    }
+
     if (!session || !selectedTheme) return;
 
     try {
@@ -230,6 +272,33 @@ function TemplatesContent() {
   useEffect(() => {
     const loadCVData = async () => {
       const dataParam = searchParams.get("data");
+      const adminEditParam = searchParams.get("adminEdit");
+
+      // Admin edit modu kontrolü
+      if (adminEditParam) {
+        try {
+          const decodedData = decodeURIComponent(adminEditParam);
+          const adminData = JSON.parse(decodedData);
+
+          setIsAdminEdit(true);
+          setEditingUserId(adminData.userId);
+          setEditingCVId(adminData.cvId);
+          setFormData(adminData.formData);
+          setCustomization(adminData.customization || customization);
+          setCustomSlug(adminData.slug);
+
+          const themeId = adminData.themeId || "tech";
+          setSelectedTheme(
+            PROFESSION_THEMES.find((t) => t.id === themeId) ||
+              PROFESSION_THEMES[0]
+          );
+
+          console.log("Admin edit modu aktif:", adminData);
+          return;
+        } catch (error) {
+          console.error("Admin edit verisi parse edilemedi:", error);
+        }
+      }
 
       // ÖNCE URL'deki data parametresini kontrol et (öncelik burada)
       if (dataParam) {
@@ -410,6 +479,247 @@ function TemplatesContent() {
         cardBorder: "rgba(234, 88, 12, 0.3)",
       },
     },
+    {
+      id: "marketing",
+      name: "Pazarlama & Reklam",
+      description:
+        "Pazarlamacı, reklamcı, sosyal medya uzmanı, marka yöneticisi",
+      icon: "📢",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1920&q=80",
+      colors: {
+        primary: "#ec4899",
+        secondary: "#be185d",
+        accent: "#f472b6",
+        cardBg: "rgba(236, 72, 153, 0.1)",
+        cardBorder: "rgba(236, 72, 153, 0.3)",
+      },
+    },
+    {
+      id: "design",
+      name: "Grafik Tasarım",
+      description: "Grafik tasarımcı, UI/UX tasarımcı, illüstratör",
+      icon: "🎨",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=1920&q=80",
+      colors: {
+        primary: "#f43f5e",
+        secondary: "#be123c",
+        accent: "#fb7185",
+        cardBg: "rgba(244, 63, 94, 0.1)",
+        cardBorder: "rgba(244, 63, 94, 0.3)",
+      },
+    },
+    {
+      id: "sales",
+      name: "Satış & Ticaret",
+      description: "Satış temsilcisi, ticaret, mağaza müdürü",
+      icon: "💰",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1920&q=80",
+      colors: {
+        primary: "#eab308",
+        secondary: "#a16207",
+        accent: "#facc15",
+        cardBg: "rgba(234, 179, 8, 0.1)",
+        cardBorder: "rgba(234, 179, 8, 0.3)",
+      },
+    },
+    {
+      id: "consultant",
+      name: "Danışmanlık",
+      description: "Strateji uzmanı, iş danışmanı, profesyonel danışman",
+      icon: "🎯",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1920&q=80",
+      colors: {
+        primary: "#06b6d4",
+        secondary: "#0891b2",
+        accent: "#22d3ee",
+        cardBg: "rgba(6, 182, 212, 0.1)",
+        cardBorder: "rgba(6, 182, 212, 0.3)",
+      },
+    },
+    {
+      id: "media",
+      name: "Medya & İletişim",
+      description: "Gazeteci, muhabir, sunucu, içerik editörü",
+      icon: "📺",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1589270222752-cff8833b47bf?w=1920&q=80",
+      colors: {
+        primary: "#6366f1",
+        secondary: "#4338ca",
+        accent: "#818cf8",
+        cardBg: "rgba(99, 102, 241, 0.1)",
+        cardBorder: "rgba(99, 102, 241, 0.3)",
+      },
+    },
+    {
+      id: "food",
+      name: "Gastronomi & Mutfak",
+      description: "Şef, aşçı, restoran yöneticisi, barista",
+      icon: "🍽️",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?w=1920&q=80",
+      colors: {
+        primary: "#f97316",
+        secondary: "#c2410c",
+        accent: "#fb923c",
+        cardBg: "rgba(249, 115, 22, 0.1)",
+        cardBorder: "rgba(249, 115, 22, 0.3)",
+      },
+    },
+    {
+      id: "sports",
+      name: "Spor & Fitness",
+      description: "Antrenör, sporcu, fitness eğitmeni, wellness uzmanı",
+      icon: "⚽",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=1920&q=80",
+      colors: {
+        primary: "#22c55e",
+        secondary: "#15803d",
+        accent: "#4ade80",
+        cardBg: "rgba(34, 197, 94, 0.1)",
+        cardBorder: "rgba(34, 197, 94, 0.3)",
+      },
+    },
+    {
+      id: "beauty",
+      name: "Güzellik & Estetik",
+      description: "Kuaför, makyöz, estetisyen, spa uzmanı",
+      icon: "💅",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=1920&q=80",
+      colors: {
+        primary: "#ec4899",
+        secondary: "#be185d",
+        accent: "#f472b6",
+        cardBg: "rgba(236, 72, 153, 0.1)",
+        cardBorder: "rgba(236, 72, 153, 0.3)",
+      },
+    },
+    {
+      id: "travel",
+      name: "Turizm & Seyahat",
+      description: "Turist rehberi, otel yöneticisi, seyahat acentesi",
+      icon: "✈️",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1469856573086-9ca3aa26f4c0?w=1920&q=80",
+      colors: {
+        primary: "#0ea5e9",
+        secondary: "#0284c7",
+        accent: "#38bdf8",
+        cardBg: "rgba(14, 165, 233, 0.1)",
+        cardBorder: "rgba(14, 165, 233, 0.3)",
+      },
+    },
+    {
+      id: "green",
+      name: "Yeşil & Doğa",
+      description: "Renk teması: Doğa, sürdürülebilirlik, yeşil",
+      icon: "🌿",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1920&q=80",
+      colors: {
+        primary: "#10b981",
+        secondary: "#059669",
+        accent: "#34d399",
+        cardBg: "rgba(16, 185, 129, 0.1)",
+        cardBorder: "rgba(16, 185, 129, 0.3)",
+      },
+    },
+    {
+      id: "ocean",
+      name: "Okyanus & Mavi",
+      description: "Renk teması: Mavi tonlar, profesyonel, güvenilir",
+      icon: "🌊",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1920&q=80",
+      colors: {
+        primary: "#0ea5e9",
+        secondary: "#0284c7",
+        accent: "#38bdf8",
+        cardBg: "rgba(14, 165, 233, 0.1)",
+        cardBorder: "rgba(14, 165, 233, 0.3)",
+      },
+    },
+    {
+      id: "sunset",
+      name: "Gün Batımı & Turuncu",
+      description: "Renk teması: Sıcak turuncu-kırmızı tonlar",
+      icon: "🌅",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80",
+      colors: {
+        primary: "#f97316",
+        secondary: "#ea580c",
+        accent: "#fb923c",
+        cardBg: "rgba(249, 115, 22, 0.1)",
+        cardBorder: "rgba(249, 115, 22, 0.3)",
+      },
+    },
+    {
+      id: "purple",
+      name: "Mor & Lila",
+      description: "Renk teması: Yaratıcı mor-lila tonları",
+      icon: "💜",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1920&q=80",
+      colors: {
+        primary: "#a855f7",
+        secondary: "#7c3aed",
+        accent: "#c084fc",
+        cardBg: "rgba(168, 85, 247, 0.1)",
+        cardBorder: "rgba(168, 85, 247, 0.3)",
+      },
+    },
+    {
+      id: "gold",
+      name: "Altın & Lüks",
+      description: "Renk teması: Premium, lüks, altın tonları",
+      icon: "👑",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&q=80",
+      colors: {
+        primary: "#eab308",
+        secondary: "#ca8a04",
+        accent: "#fde047",
+        cardBg: "rgba(234, 179, 8, 0.1)",
+        cardBorder: "rgba(234, 179, 8, 0.3)",
+      },
+    },
+    {
+      id: "dark",
+      name: "Siyah & Koyu",
+      description: "Renk teması: Koyu, minimal, profesyonel",
+      icon: "🖤",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=1920&q=80",
+      colors: {
+        primary: "#1f2937",
+        secondary: "#111827",
+        accent: "#4b5563",
+        cardBg: "rgba(31, 41, 55, 0.1)",
+        cardBorder: "rgba(31, 41, 55, 0.3)",
+      },
+    },
+    {
+      id: "neon",
+      name: "Neon & Parlak",
+      description: "Renk teması: Neon renkler, modern, dinamik",
+      icon: "⚡",
+      backgroundImage:
+        "https://images.unsplash.com/photo-1557672172-298e090bd0f1?w=1920&q=80",
+      colors: {
+        primary: "#8b5cf6",
+        secondary: "#7c3aed",
+        accent: "#a78bfa",
+        cardBg: "rgba(139, 92, 246, 0.1)",
+        cardBorder: "rgba(139, 92, 246, 0.3)",
+      },
+    },
   ];
 
   const handleThemeSelect = (theme) => {
@@ -418,6 +728,10 @@ function TemplatesContent() {
       ...prev,
       backgroundImage: theme.backgroundImage,
       colorPalette: theme.colors,
+      // Sidebar sol tarafı için renk
+      primaryColor: theme.colors.primary,
+      secondaryColor: theme.colors.secondary,
+      accentColor: theme.colors.accent,
     }));
   };
 
@@ -512,7 +826,56 @@ function TemplatesContent() {
     setSlugError(validateSlug(cleanedSlug));
   };
 
-  const handlePublish = async () => {
+  const handleFinishEditing = async () => {
+    // Önce düzenleme modundan çık
+    setIsEditing(false);
+
+    if (isAdminEdit) {
+      // Admin edit modu - direkt kaydet ve yayınla
+      try {
+        console.log("Admin edit modu - CV kaydediliyor:", {
+          cvId: editingCVId,
+          userId: editingUserId,
+          formData,
+          customization,
+        });
+
+        // Önce CV'yi kaydet
+        await saveToAPI(formData, customization);
+
+        console.log("CV kaydedildi, şimdi yayınlanıyor...");
+
+        // Sonra yayınla (eğer yayınlanmamışsa)
+        const publishResponse = await fetch("/api/admin/cvs", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cvId: editingCVId,
+            updates: {
+              isPublished: true,
+              isActive: true,
+            },
+          }),
+        });
+
+        console.log("Publish response:", publishResponse.status);
+
+        if (publishResponse.ok) {
+          alert("CV başarıyla kaydedildi ve yayınlandı!");
+          // Sayfayı kapat
+          window.close();
+        } else {
+          const errorData = await publishResponse.json();
+          console.error("Publish error:", errorData);
+          alert("CV kaydedildi ancak yayınlanırken bir hata oluştu");
+        }
+      } catch (error) {
+        console.error("Admin güncelleme hatası:", error);
+        alert("Bir hata oluştu: " + error.message);
+      }
+      return;
+    }
+
     // Session kontrolü
     if (!session) {
       alert("CV yayınlamak için giriş yapmalısınız");
@@ -520,7 +883,73 @@ function TemplatesContent() {
       return;
     }
 
+    // Slug'ı otomatik oluştur
+    const autoSlug = generateSlug(formData.ad, formData.soyad);
+    setCustomSlug(autoSlug);
+
     // Validasyon kontrolü
+    const error = validateSlug(autoSlug);
+    if (error) {
+      setSlugError(error);
+      return;
+    }
+
+    setIsPublishing(true);
+
+    try {
+      // CV'yi kaydet
+      const saveResponse = await fetch("/api/cv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: autoSlug,
+          formData,
+          customization,
+          templateId: "sidebar",
+          themeId: selectedTheme.id,
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json();
+        throw new Error(errorData.error || "CV kaydedilemedi");
+      }
+
+      // Yayınla
+      const publishResponse = await fetch("/api/cv/publish", {
+        method: "POST",
+      });
+
+      if (!publishResponse.ok) {
+        throw new Error("Yayınlama başarısız");
+      }
+
+      // URL'yi oluştur
+      const url = `${window.location.origin}/${autoSlug}`;
+      setPublishUrl(url);
+      setShowPublishModal(true);
+    } catch (error) {
+      alert(error.message || "Bir hata oluştu");
+      setIsPublishing(false);
+      return;
+    }
+
+    setIsPublishing(false);
+  };
+
+  const closePublishModal = () => {
+    setShowPublishModal(false);
+    setPublishUrl("");
+    setCustomSlug("");
+    setSlugError("");
+  };
+
+  const handlePublish = async () => {
+    if (!customSlug.trim()) {
+      setSlugError("URL adresi boş olamaz");
+      return;
+    }
+
     const error = validateSlug(customSlug);
     if (error) {
       setSlugError(error);
@@ -560,20 +989,12 @@ function TemplatesContent() {
       // URL'yi oluştur
       const url = `${window.location.origin}/${customSlug}`;
       setPublishUrl(url);
+      setSlugError("");
     } catch (error) {
-      alert(error.message || "Bir hata oluştu");
+      setSlugError(error.message || "Bir hata oluştu");
+    } finally {
       setIsPublishing(false);
-      return;
     }
-
-    setIsPublishing(false);
-  };
-
-  const closePublishModal = () => {
-    setShowPublishModal(false);
-    setPublishUrl("");
-    setCustomSlug("");
-    setSlugError("");
   };
 
   const copyToClipboard = () => {
@@ -602,6 +1023,9 @@ function TemplatesContent() {
       languages: "dilBilgisi",
       specialSkills: "ozelBeceriler",
       projects: "projeler",
+      network: "network",
+      books: "okuduguKitaplar",
+      teams: "tuttuguTakimlar",
     };
 
     const arrayKey = sectionMap[sectionKey];
@@ -638,6 +1062,9 @@ function TemplatesContent() {
       languages: "dilBilgisi",
       specialSkills: "ozelBeceriler",
       projects: "projeler",
+      network: "network",
+      books: "okuduguKitaplar",
+      teams: "tuttuguTakimlar",
     };
 
     const arrayKey = sectionMap[sectionKey];
@@ -834,6 +1261,10 @@ function TemplatesContent() {
       languages: "dilBilgisi",
       specialSkills: "ozelBeceriler",
       projects: "projeler",
+      cities: "yasadigiYerler",
+      network: "network",
+      books: "okuduguKitaplar",
+      teams: "tuttuguTakimlar",
     };
 
     const arrayKey = sectionMap[sectionKey];
@@ -889,6 +1320,21 @@ function TemplatesContent() {
       return;
     }
 
+    // Relationship için özel işlem
+    if (editingSectionKey === "relationship") {
+      newFormData.iliskiDurumu = {
+        durum: newData.durum,
+      };
+      setFormData(newFormData);
+      localStorage.setItem("cvData", JSON.stringify(newFormData));
+      setShowEditModal(false);
+      setEditingSectionKey(null);
+      setEditingItem(null);
+      setEditingIndex(null);
+      setIsAddingNew(false);
+      return;
+    }
+
     // Section mapping
     const sectionMap = {
       education: "egitimler",
@@ -904,6 +1350,10 @@ function TemplatesContent() {
       languages: "dilBilgisi",
       specialSkills: "ozelBeceriler",
       projects: "projeler",
+      cities: "yasadigiYerler",
+      network: "network",
+      books: "okuduguKitaplar",
+      teams: "tuttuguTakimlar",
     };
 
     const arrayKey = sectionMap[editingSectionKey];
@@ -974,6 +1424,10 @@ function TemplatesContent() {
       languages: "dilBilgisi",
       specialSkills: "ozelBeceriler",
       projects: "projeler",
+      cities: "yasadigiYerler",
+      network: "network",
+      books: "okuduguKitaplar",
+      teams: "tuttuguTakimlar",
     };
 
     if (isAddingNew) {
@@ -1050,6 +1504,114 @@ function TemplatesContent() {
 
   const handleBackToThemeSelection = () => {
     setSelectedTheme(null);
+  };
+
+  // Özel bölüm fonksiyonları
+  const openCustomSectionModal = (section = null, action = "add") => {
+    setCustomSectionAction(action);
+
+    if (action === "delete") {
+      if (!confirm("Bu özel bölümü silmek istediğinizden emin misiniz?"))
+        return;
+
+      const customSections = customization.customSections || [];
+      const updatedSections = customSections.filter((s) => s.id !== section.id);
+      setCustomization((prev) => ({
+        ...prev,
+        customSections: updatedSections,
+      }));
+      return;
+    }
+
+    if (section) {
+      setEditingCustomSection(section);
+      setCustomSectionForm({
+        title: section.title,
+        content: section.content,
+      });
+    } else {
+      setEditingCustomSection(null);
+      setCustomSectionForm({ title: "", content: "" });
+    }
+    setShowCustomSectionModal(true);
+  };
+
+  const closeCustomSectionModal = () => {
+    setShowCustomSectionModal(false);
+    setEditingCustomSection(null);
+    setCustomSectionForm({ title: "", content: "" });
+    setCustomSectionAction("add");
+  };
+
+  const saveCustomSection = () => {
+    if (!customSectionForm.title.trim()) {
+      alert("Lütfen bölüm başlığı girin");
+      return;
+    }
+
+    const customSections = customization.customSections || [];
+
+    if (editingCustomSection) {
+      // Güncelleme
+      const updatedSections = customSections.map((section) =>
+        section.id === editingCustomSection.id
+          ? { ...section, ...customSectionForm }
+          : section
+      );
+      setCustomization((prev) => ({
+        ...prev,
+        customSections: updatedSections,
+      }));
+    } else {
+      // Yeni ekleme
+      const newSection = {
+        id: Date.now().toString(),
+        title: customSectionForm.title,
+        content: customSectionForm.content,
+        visible: true,
+      };
+      setCustomization((prev) => ({
+        ...prev,
+        customSections: [...customSections, newSection],
+      }));
+    }
+
+    closeCustomSectionModal();
+  };
+
+  // Custom Section Visibility Toggle
+  const handleToggleCustomSectionVisibility = (sectionId) => {
+    setCustomization((prev) => ({
+      ...prev,
+      customSections: prev.customSections.map((section) =>
+        section.id === sectionId
+          ? { ...section, visible: !section.visible }
+          : section
+      ),
+    }));
+  };
+
+  // Section Visibility Toggle
+  const handleToggleSectionVisibility = (sectionKey) => {
+    // Custom section kontrolü
+    if (sectionKey.startsWith("custom_")) {
+      const customSectionId = sectionKey.replace("custom_", "");
+      handleToggleCustomSectionVisibility(customSectionId);
+      return;
+    }
+
+    // Normal section
+    setCustomization((prev) => {
+      const currentVisibility = prev.sectionVisibility?.[sectionKey] ?? true;
+
+      return {
+        ...prev,
+        sectionVisibility: {
+          ...prev.sectionVisibility,
+          [sectionKey]: !currentVisibility,
+        },
+      };
+    });
   };
 
   // Map kaydetme fonksiyonu
@@ -1248,6 +1810,44 @@ function TemplatesContent() {
         },
         { name: "link", label: "Link", type: "text" },
       ],
+      cities: [{ name: "sehir", label: "Şehir", type: "text", required: true }],
+      relationship: [
+        {
+          name: "durum",
+          label: "İlişki Durumu",
+          type: "select",
+          options: ["bekar", "evli"],
+        },
+      ],
+      network: [
+        { name: "ad", label: "İsim", type: "text", required: true },
+        {
+          name: "iliskiTuru",
+          label: "İlişki Türü",
+          type: "select",
+          options: [
+            "ogrenci",
+            "hoca",
+            "lise_arkadasi",
+            "universite_arkadasi",
+            "meslektas",
+            "diger",
+          ],
+        },
+        {
+          name: "digerIliski",
+          label: "Diğer İlişki (opsiyonel)",
+          type: "text",
+        },
+        { name: "aciklama", label: "Açıklama/Not", type: "textarea" },
+      ],
+      books: [
+        { name: "kitapAdi", label: "Kitap Adı", type: "text", required: true },
+        { name: "yazar", label: "Yazar", type: "text", required: true },
+      ],
+      teams: [
+        { name: "takimAdi", label: "Takım Adı", type: "text", required: true },
+      ],
       photoGallery: [], // Modal custom UI kullanacak
     };
 
@@ -1313,7 +1913,7 @@ function TemplatesContent() {
           </div>
 
           {/* Tema Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {PROFESSION_THEMES.map((theme, index) => (
               <motion.div
                 key={theme.id}
@@ -1418,9 +2018,9 @@ function TemplatesContent() {
       {/* Arkaplan Önizleme veya Boş Ekran */}
       {selectedTheme ? (
         <div
-          className={`absolute inset-0 bg-gray-900 overflow-y-auto ${
-            isEditing ? "pt-20" : "pb-[50vh]"
-          }`}
+          className={`absolute inset-0 bg-gray-900 overflow-y-auto transition-all duration-300 ${
+            isEditing ? "pt-20" : ""
+          } ${!isEditing && isSidebarOpen ? "lg:ml-80" : ""}`}
         >
           {/* CV Önizleme - TemplateRenderer Component */}
           <TemplateRenderer
@@ -1438,6 +2038,7 @@ function TemplatesContent() {
             sectionOrder={sectionOrder}
             moveSectionUp={moveSectionUp}
             moveSectionDown={moveSectionDown}
+            onToggleSectionVisibility={handleToggleSectionVisibility}
           />
         </div>
       ) : (
@@ -1545,39 +2146,106 @@ function TemplatesContent() {
         </div>
       )}
 
-      {/* Şablon Listesi - Fixed Bottom (düzenleme modunda gizli) */}
-      {!isEditing && (
-        <div className="fixed bottom-0 left-0 right-0 bg-emerald-500 shadow-2xl pb-5 z-50">
-          <div className="max-w-7xl mx-auto px-6 py-6">
-            {/* Başlık */}
-            <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold text-white mb-2">Şablon Seç</h1>
-              <p className="text-white/90">
-                {formData.ad} {formData.soyad} için uygun şablonu seçin
-              </p>
-            </div>
+      {/* Left Sidebar - Customization Panel */}
+      {!isEditing && selectedTheme && (
+        <>
+          {/* Mobile Toggle Button */}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="lg:hidden fixed top-4 left-4 z-50 p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg shadow-lg transition-colors"
+            aria-label="Toggle Sidebar"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {isSidebarOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
+          </button>
 
-            {/* Customization Panel */}
-            <CustomizationPanel
-              customization={customization}
-              setCustomization={setCustomization}
-              onBack={handleBackToThemeSelection}
-              isEditing={isEditing}
-              setIsEditing={setIsEditing}
-              selectedTheme={selectedTheme}
+          {/* Backdrop for mobile */}
+          {isSidebarOpen && (
+            <div
+              className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
+              onClick={() => setIsSidebarOpen(false)}
             />
+          )}
 
-            {/* Kontrol Butonları */}
-            <div className="flex justify-center gap-4 mt-6">
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="px-6 py-2.5 bg-white hover:bg-gray-50 text-gray-800 rounded-lg font-medium transition-all shadow-lg hover:shadow-xl"
-              >
-                Düzenle
-              </button>
+          {/* Sidebar */}
+          <div
+            className={`fixed left-0 top-0 h-screen w-80 bg-gradient-to-b from-emerald-500 to-emerald-600 shadow-2xl overflow-y-auto z-40 transition-transform duration-300 ${
+              isSidebarOpen
+                ? "translate-x-0"
+                : "-translate-x-full lg:translate-x-0"
+            }`}
+          >
+            <div className="flex flex-col h-full">
+              {/* Sidebar Header */}
+              <div className="sticky top-0 bg-emerald-600/90 backdrop-blur-sm px-6 py-4 border-b border-white/10 z-10">
+                <div className="flex items-center justify-between mb-2">
+                  <h1 className="text-xl font-bold text-white">
+                    CV Özelleştir
+                  </h1>
+                  <button
+                    onClick={handleBackToThemeSelection}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white"
+                    title="Tema Seçimine Dön"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <p className="text-white/80 text-sm">
+                  {formData.ad} {formData.soyad}
+                </p>
+                <p className="text-white/60 text-xs mt-1">
+                  {selectedTheme.name}
+                </p>
+              </div>
+
+              {/* Customization Panel */}
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                <CustomizationPanel
+                  customization={customization}
+                  setCustomization={setCustomization}
+                  onBack={handleBackToThemeSelection}
+                  isEditing={isEditing}
+                  setIsEditing={setIsEditing}
+                  selectedTheme={selectedTheme}
+                  onFinishEditing={handleFinishEditing}
+                  onOpenCustomSectionModal={openCustomSectionModal}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Düzenleme Modu - Üst kısımda sabit */}
@@ -1585,15 +2253,24 @@ function TemplatesContent() {
         <div className="fixed top-0 left-0 right-0 bg-emerald-400 shadow-lg z-50">
           <div className="max-w-7xl mx-auto p-4">
             <div className="flex justify-between items-center">
-              <h1 className="text-xl font-bold text-white">
-                Düzenleme Modu - {selectedTheme?.name || "Profesyonel Şablon"}
-              </h1>
+              <div>
+                <h1 className="text-xl font-bold text-white">
+                  {isAdminEdit ? "🛡️ Admin Düzenleme Modu" : "Düzenleme Modu"} -{" "}
+                  {selectedTheme?.name || "Profesyonel Şablon"}
+                </h1>
+                {isAdminEdit && formData && (
+                  <p className="text-sm text-white/90 mt-1">
+                    Kullanıcı: {formData.ad} {formData.soyad} (ID:{" "}
+                    {editingUserId})
+                  </p>
+                )}
+              </div>
               <div className="flex gap-3">
                 <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium transition-colors"
+                  onClick={handleFinishEditing}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors"
                 >
-                  Düzenlemeyi Bitir
+                  {isAdminEdit ? "Kaydet ve Yayınla" : "Sayfayı Yayınla"}
                 </button>
               </div>
             </div>
@@ -1680,6 +2357,24 @@ function TemplatesContent() {
                         : "Referans Düzenle")}
                     {editingSectionKey === "languages" &&
                       (editingIndex === null ? "Yeni Dil Ekle" : "Dil Düzenle")}
+                    {editingSectionKey === "cities" &&
+                      (editingIndex === null
+                        ? "Yeni Şehir Ekle"
+                        : "Şehir Düzenle")}
+                    {editingSectionKey === "relationship" &&
+                      "İlişki Durumu Düzenle"}
+                    {editingSectionKey === "network" &&
+                      (editingIndex === null
+                        ? "Yeni Kişi Ekle"
+                        : "Kişi Düzenle")}
+                    {editingSectionKey === "books" &&
+                      (editingIndex === null
+                        ? "Yeni Kitap Ekle"
+                        : "Kitap Düzenle")}
+                    {editingSectionKey === "teams" &&
+                      (editingIndex === null
+                        ? "Yeni Takım Ekle"
+                        : "Takım Düzenle")}
                     {editingSectionKey === "photoGallery" &&
                       "Fotoğraf Galerisi Yönetimi"}
                     {editingSectionKey === "projects" &&
@@ -2533,6 +3228,155 @@ function TemplatesContent() {
                       </div>
                     )}
 
+                    {editingSectionKey === "cities" && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Şehir
+                          </label>
+                          <input
+                            type="text"
+                            name="sehir"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-800"
+                            defaultValue={editingItem?.sehir || ""}
+                            placeholder="Örn: İstanbul, Ankara, İzmir"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {editingSectionKey === "relationship" && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            İlişki Durumu
+                          </label>
+                          <select
+                            name="durum"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-800"
+                            defaultValue={
+                              editingItem?.durum ||
+                              formData?.iliskiDurumu?.durum ||
+                              ""
+                            }
+                          >
+                            <option value="">Seçiniz</option>
+                            <option value="bekar">Bekar</option>
+                            <option value="evli">Evli</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {editingSectionKey === "network" && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            İsim
+                          </label>
+                          <input
+                            type="text"
+                            name="ad"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-800"
+                            defaultValue={editingItem?.ad || ""}
+                            placeholder="Örn: Ahmet Yılmaz"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            İlişki Türü
+                          </label>
+                          <select
+                            name="iliskiTuru"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-800"
+                            defaultValue={editingItem?.iliskiTuru || ""}
+                          >
+                            <option value="">Seçiniz</option>
+                            <option value="ogrenci">Öğrencim</option>
+                            <option value="hoca">Hocam</option>
+                            <option value="lise_arkadasi">
+                              Lise Arkadaşım
+                            </option>
+                            <option value="universite_arkadasi">
+                              Üniversite Arkadaşım
+                            </option>
+                            <option value="meslektas">Meslektaşım</option>
+                            <option value="diger">Diğer</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Diğer İlişki Türü (Sadece "Diğer" seçiliyse)
+                          </label>
+                          <input
+                            type="text"
+                            name="digerIliski"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-800"
+                            defaultValue={editingItem?.digerIliski || ""}
+                            placeholder="Örn: Kuzen, Komşu, Mentor"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Açıklama/Not
+                          </label>
+                          <textarea
+                            rows={3}
+                            name="aciklama"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-800"
+                            defaultValue={editingItem?.aciklama || ""}
+                            placeholder="Kısa bir not ekleyebilirsiniz..."
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {editingSectionKey === "books" && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Kitap Adı
+                          </label>
+                          <input
+                            type="text"
+                            name="kitapAdi"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-800"
+                            defaultValue={editingItem?.kitapAdi || ""}
+                            placeholder="Örn: Suç ve Ceza"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Yazar
+                          </label>
+                          <input
+                            type="text"
+                            name="yazar"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-800"
+                            defaultValue={editingItem?.yazar || ""}
+                            placeholder="Örn: Dostoyevski"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {editingSectionKey === "teams" && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Takım Adı
+                          </label>
+                          <input
+                            type="text"
+                            name="takimAdi"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-gray-800"
+                            defaultValue={editingItem?.takimAdi || ""}
+                            placeholder="Örn: Galatasaray, Fenerbahçe"
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     {editingSectionKey === "photoGallery" && (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -2982,6 +3826,117 @@ function TemplatesContent() {
           <span>CV'yi Yayınla</span>
         </motion.button>
       )}
+
+      {/* Özel Bölüm Modal */}
+      <AnimatePresence>
+        {showCustomSectionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={closeCustomSectionModal}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-4 text-white">
+                <h3 className="text-xl font-bold">
+                  {editingCustomSection
+                    ? "Özel Bölümü Düzenle"
+                    : "Yeni Özel Bölüm"}
+                </h3>
+              </div>
+
+              {/* Modal Content */}
+              <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">
+                <div className="space-y-4">
+                  {/* Başlık */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Bölüm Başlığı *
+                    </label>
+                    <input
+                      type="text"
+                      value={customSectionForm.title}
+                      onChange={(e) =>
+                        setCustomSectionForm({
+                          ...customSectionForm,
+                          title: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-gray-800"
+                      placeholder="Örn: Yayınlarım, Projelerim, Referanslarım"
+                    />
+                  </div>
+
+                  {/* İçerik */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      İçerik
+                    </label>
+                    <div className="border border-gray-200 rounded-xl overflow-hidden">
+                      <JoditEditor
+                        value={customSectionForm.content}
+                        config={{
+                          readonly: false,
+                          placeholder: "İçerik yazın...",
+                          height: 300,
+                          minHeight: 300,
+                          buttons: [
+                            "bold",
+                            "italic",
+                            "underline",
+                            "|",
+                            "ul",
+                            "ol",
+                            "|",
+                            "align",
+                            "|",
+                            "undo",
+                            "redo",
+                          ],
+                          toolbarAdaptive: false,
+                          showCharsCounter: false,
+                          showWordsCounter: false,
+                          showXPathInStatusbar: false,
+                        }}
+                        onBlur={(newContent) =>
+                          setCustomSectionForm({
+                            ...customSectionForm,
+                            content: newContent,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
+                <button
+                  onClick={closeCustomSectionModal}
+                  className="flex-1 px-6 py-3 border-2 border-gray-200 rounded-xl text-gray-700 hover:border-gray-300 hover:bg-gray-100 font-medium transition-all"
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={saveCustomSection}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all"
+                >
+                  {editingCustomSection ? "Güncelle" : "Ekle"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -143,9 +143,14 @@ export default function Pricing() {
                 <span>Öncelikli destek</span>
               </li>
             </ul>
-            <button className="w-full bg-white text-blue-600 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-colors">
+            <a
+              href="https://wa.me/905540105044?text=Merhaba,%20Pro%20paketini%20satın%20almak%20istiyorum."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-white text-blue-600 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-colors block text-center"
+            >
               Pro'ya Geç
-            </button>
+            </a>
           </div>
 
           {/* Enterprise Plan */}
@@ -215,9 +220,14 @@ export default function Pricing() {
                 <span className="text-slate-600">7/24 destek</span>
               </li>
             </ul>
-            <button className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors">
+            <a
+              href="https://wa.me/905540105044?text=Merhaba,%20Kurumsal%20paketini%20satın%20almak%20istiyorum."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors block text-center"
+            >
               İletişime Geç
-            </button>
+            </a>
           </div>
         </div>
       </div>

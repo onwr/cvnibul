@@ -18,6 +18,8 @@ import {
   FiCheck,
   FiX,
   FiZoomIn,
+  FiMessageSquare,
+  FiEdit3,
 } from "react-icons/fi";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -56,6 +58,11 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
+  // Comments
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentFilter, setCommentFilter] = useState("all");
+
   // CV Edit Modal
   const [editingCV, setEditingCV] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -76,9 +83,19 @@ export default function AdminDashboard() {
         loadAppointments();
       } else if (activeTab === "stats") {
         loadStats();
+      } else if (activeTab === "comments") {
+        loadComments();
       }
     }
-  }, [session, activeTab, page, search, appointmentFilter, photoFilter]);
+  }, [
+    session,
+    activeTab,
+    page,
+    search,
+    appointmentFilter,
+    photoFilter,
+    commentFilter,
+  ]);
 
   const loadCVs = async () => {
     setLoading(true);
@@ -150,6 +167,24 @@ export default function AdminDashboard() {
       console.error("İstatistikler yüklenemedi:", error);
     } finally {
       setStatsLoading(false);
+    }
+  };
+
+  const loadComments = async () => {
+    setCommentsLoading(true);
+    try {
+      const response = await fetch(
+        `/api/admin/comments?status=${commentFilter}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data.comments || []);
+      }
+    } catch (error) {
+      console.error("Yorumlar yüklenemedi:", error);
+    } finally {
+      setCommentsLoading(false);
     }
   };
 
@@ -273,6 +308,26 @@ export default function AdminDashboard() {
     setShowEditModal(true);
   };
 
+  const handleEditTemplate = (cv) => {
+    // CV verisini encode ederek templates sayfasına yönlendir
+    const cvData = encodeURIComponent(
+      JSON.stringify({
+        cvId: cv.id,
+        userId: cv.user.id, // cv.user.id olarak düzeltildi
+        formData: cv.formData,
+        customization: cv.customization,
+        slug: cv.slug,
+        themeId: cv.themeId || cv.templateId || "tech",
+        isPublished: cv.isPublished,
+        isActive: cv.isActive,
+        isAdminEdit: true, // Admin düzenleme bayrağı
+      })
+    );
+
+    // Yeni sekmede templates sayfasını aç
+    window.open(`/templates?adminEdit=${cvData}`, "_blank");
+  };
+
   const handleSaveCV = async (updates) => {
     try {
       const response = await fetch("/api/admin/cvs", {
@@ -294,6 +349,72 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error("Güncelleme hatası:", error);
+      alert("Bir hata oluştu");
+    }
+  };
+
+  const handleApproveComment = async (commentId) => {
+    try {
+      const response = await fetch("/api/admin/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentId }),
+      });
+
+      if (response.ok) {
+        alert("Yorum onaylandı");
+        loadComments();
+      } else {
+        alert("Yorum onaylanırken bir hata oluştu");
+      }
+    } catch (error) {
+      console.error("Onaylama hatası:", error);
+      alert("Bir hata oluştu");
+    }
+  };
+
+  const handleRejectComment = async (commentId) => {
+    if (!confirm("Bu yorumu reddetmek istediğinizden emin misiniz?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/admin/comments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentId }),
+      });
+
+      if (response.ok) {
+        alert("Yorum reddedildi");
+        loadComments();
+      } else {
+        alert("Yorum reddedilirken bir hata oluştu");
+      }
+    } catch (error) {
+      console.error("Reddetme hatası:", error);
+      alert("Bir hata oluştu");
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!confirm("Bu yorumu silmek istediğinizden emin misiniz?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/comments?id=${commentId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        alert("Yorum silindi");
+        loadComments();
+      } else {
+        alert("Yorum silinirken bir hata oluştu");
+      }
+    } catch (error) {
+      console.error("Silme hatası:", error);
       alert("Bir hata oluştu");
     }
   };
@@ -321,6 +442,12 @@ export default function AdminDashboard() {
       id: "stats",
       name: "İstatistikler",
       icon: FiBarChart,
+    },
+    {
+      id: "comments",
+      name: "Yorumlar",
+      icon: FiMessageSquare,
+      badge: comments.filter((c) => c.status === "pending").length,
     },
   ];
 
@@ -402,6 +529,7 @@ export default function AdminDashboard() {
                 setPage={setPage}
                 handleDelete={handleDeleteCV}
                 handleEdit={handleEditCV}
+                handleEditTemplate={handleEditTemplate}
               />
             </motion.div>
           )}
@@ -453,6 +581,25 @@ export default function AdminDashboard() {
               <StatsTab stats={stats} loading={statsLoading} />
             </motion.div>
           )}
+
+          {activeTab === "comments" && (
+            <motion.div
+              key="comments"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <CommentsTab
+                comments={comments}
+                loading={commentsLoading}
+                filter={commentFilter}
+                setFilter={setCommentFilter}
+                onApprove={handleApproveComment}
+                onReject={handleRejectComment}
+                onDelete={handleDeleteComment}
+              />
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* Back to Home */}
@@ -501,6 +648,7 @@ function CVManagementTab({
   setPage,
   handleDelete,
   handleEdit,
+  handleEditTemplate,
 }) {
   if (loading) {
     return (
@@ -619,6 +767,13 @@ function CVManagementTab({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditTemplate(cv)}
+                        className="text-purple-600 hover:text-purple-900 flex items-center gap-1"
+                        title="Şablonu Düzenle"
+                      >
+                        <FiEdit3 />
+                      </button>
                       <button
                         onClick={() => handleEdit(cv)}
                         className="text-green-600 hover:text-green-900 flex items-center gap-1"
@@ -1107,6 +1262,229 @@ function StatsTab({ stats, loading }) {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Comments Tab Component
+function CommentsTab({
+  comments,
+  loading,
+  filter,
+  setFilter,
+  onApprove,
+  onReject,
+  onDelete,
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <FiLoader className="w-8 h-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
+  // Filter comments based on status
+  const filteredComments = comments.filter((comment) => {
+    if (filter === "all") return true;
+    return comment.status === filter;
+  });
+
+  if (filteredComments.length === 0) {
+    return (
+      <div className="space-y-6">
+        {/* Filter */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex gap-2">
+            {["all", "pending", "approved", "rejected"].map((status) => (
+              <button
+                key={status}
+                onClick={() => setFilter(status)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filter === status
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {status === "all"
+                  ? "Tümü"
+                  : status === "pending"
+                  ? "Bekleyen"
+                  : status === "approved"
+                  ? "Onaylanmış"
+                  : "Reddedilmiş"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-md p-12 text-center">
+          <FiMessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            {filter === "all"
+              ? "Yorum Yok"
+              : `${
+                  filter === "pending"
+                    ? "Bekleyen"
+                    : filter === "approved"
+                    ? "Onaylanmış"
+                    : "Reddedilmiş"
+                } Yorum Yok`}
+          </h3>
+          <p className="text-gray-600">
+            {filter === "all"
+              ? "Hiçbir yorum bulunmuyor."
+              : `${
+                  filter === "pending"
+                    ? "Onay bekleyen"
+                    : filter === "approved"
+                    ? "Onaylanmış"
+                    : "Reddedilmiş"
+                } hiçbir yorum bulunmuyor.`}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Filter */}
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="flex gap-2">
+          {["all", "pending", "approved", "rejected"].map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilter(status)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                filter === status
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {status === "all"
+                ? "Tümü"
+                : status === "pending"
+                ? "Bekleyen"
+                : status === "approved"
+                ? "Onaylanmış"
+                : "Reddedilmiş"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Comments Table */}
+      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
+                  Yazar
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
+                  Yorum
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
+                  CV
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
+                  Tarih
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
+                  Durum
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
+                  İşlemler
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredComments.map((comment) => (
+                <tr key={comment.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm">
+                      <div className="font-medium text-gray-900">
+                        {comment.authorName}
+                      </div>
+                      <div className="text-gray-500">{comment.authorEmail}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 max-w-xs">
+                      <p className="truncate">{comment.content}</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm">
+                      <div className="font-medium text-gray-900">
+                        {comment.cv.ad} {comment.cv.soyad}
+                      </div>
+                      <Link
+                        href={`/${comment.cv.slug}`}
+                        target="_blank"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {comment.cv.slug}
+                      </Link>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {new Date(comment.createdAt).toLocaleString("tr-TR")}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        comment.status === "approved"
+                          ? "bg-green-100 text-green-800"
+                          : comment.status === "rejected"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {comment.status === "approved"
+                        ? "✓ Onaylandı"
+                        : comment.status === "rejected"
+                        ? "✗ Reddedildi"
+                        : "⏳ Bekliyor"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex gap-2">
+                      {comment.status === "pending" && (
+                        <>
+                          <button
+                            onClick={() => onApprove(comment.id)}
+                            className="text-green-600 hover:text-green-900 flex items-center gap-1"
+                            title="Onayla"
+                          >
+                            <FiCheck />
+                          </button>
+                          <button
+                            onClick={() => onReject(comment.id)}
+                            className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                            title="Reddet"
+                          >
+                            <FiX />
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => onDelete(comment.id)}
+                        className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                        title="Sil"
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

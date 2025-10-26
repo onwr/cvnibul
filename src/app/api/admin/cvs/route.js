@@ -41,6 +41,7 @@ export async function GET(request) {
         include: {
           user: {
             select: {
+              id: true,
               name: true,
               email: true,
               image: true,
@@ -110,13 +111,29 @@ export async function PATCH(request) {
       );
     }
 
-    // CV'yi güncelle
+    // CV'yi güncelle - sadece mevcut alanları güncelle
+    const allowedFields = {
+      formData: updates.formData,
+      customization: updates.customization,
+      slug: updates.slug,
+      templateId: updates.templateId,
+      isPublished: updates.isPublished,
+      isActive: updates.isActive,
+      updatedAt: new Date(),
+    };
+
+    // Undefined alanları temizle
+    Object.keys(allowedFields).forEach((key) => {
+      if (allowedFields[key] === undefined) {
+        delete allowedFields[key];
+      }
+    });
+
+    console.log("Admin PATCH - Updating CV with:", allowedFields);
+
     const updatedCV = await prisma.cV.update({
       where: { id: cvId },
-      data: {
-        ...updates,
-        updatedAt: new Date(),
-      },
+      data: allowedFields,
       include: {
         user: {
           select: {

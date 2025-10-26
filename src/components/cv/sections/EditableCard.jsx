@@ -6,6 +6,8 @@ import {
   FiChevronUp,
   FiChevronDown,
   FiTrash2,
+  FiEye,
+  FiEyeOff,
 } from "react-icons/fi";
 
 const EditableCard = ({
@@ -26,7 +28,9 @@ const EditableCard = ({
   className = "",
   customBorderColor = null,
   customization = null,
+  onToggleSectionVisibility = () => {},
 }) => {
+  const isVisible = customization?.sectionVisibility?.[sectionKey] ?? true;
   // Profesyonel şablon için custom renk
   const finalBorderColor =
     customization?.professionalCardBorder || customBorderColor;
@@ -102,7 +106,9 @@ const EditableCard = ({
 
   return (
     <div
-      className={`bg-white rounded-xl shadow-md border-l-4 p-4 md:p-6 ${colSpan} ${className}`}
+      className={`bg-white rounded-xl shadow-md border-l-4 p-4 md:p-6 ${colSpan} ${className} ${
+        !isVisible && isEditing ? "opacity-50" : ""
+      }`}
       style={{
         borderLeftColor:
           customization?.professionalCardBorder ||
@@ -122,13 +128,35 @@ const EditableCard = ({
           </div>
           <span className="text-sm md:text-base lg:text-lg">{title}</span>
         </div>
-        {isEditing && items.length > 0 && (
-          <button
-            onClick={() => onEdit(sectionKey, null)}
-            className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
-          >
-            <FiPlus className="w-3 h-3" />
-          </button>
+        {isEditing && (
+          <div className="flex items-center gap-2">
+            {/* Görünürlük Butonu */}
+            <button
+              onClick={() => onToggleSectionVisibility?.(sectionKey)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-all cursor-pointer relative group"
+              title={isVisible ? "Bölümü Gizle" : "Bölümü Göster"}
+            >
+              {isVisible ? (
+                <FiEye className="w-4 h-4 text-gray-600" />
+              ) : (
+                <FiEyeOff className="w-4 h-4 text-gray-400" />
+              )}
+              {/* Tooltip */}
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                {isVisible ? "Bölümü Gizle" : "Bölümü Göster"}
+              </span>
+            </button>
+
+            {/* Ekle Butonu */}
+            {items.length > 0 && (
+              <button
+                onClick={() => onEdit(sectionKey, null)}
+                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
+              >
+                <FiPlus className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         )}
       </h3>
 

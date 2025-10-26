@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   FiPhone,
   FiMail,
@@ -23,6 +24,11 @@ import {
   FiChevronUp,
   FiChevronDown,
   FiTrash2,
+  FiMessageSquare,
+  FiSend,
+  FiFileText,
+  FiEye,
+  FiEyeOff,
 } from "react-icons/fi";
 import EditableCard from "./sections/EditableCard";
 import EditableSidebarSection from "./sections/EditableSidebarSection";
@@ -55,6 +61,49 @@ const formatLevel = (level) => {
   return levelMap[level?.toLowerCase()] || level;
 };
 
+const formatRelationship = (durum) => {
+  const relationshipMap = {
+    bekar: "Bekar",
+    evli: "Evli",
+  };
+  return relationshipMap[durum?.toLowerCase()] || durum;
+};
+
+const getRelationshipIcon = (durum) => {
+  const iconMap = {
+    bekar: "💍",
+    evli: "👫",
+  };
+  return iconMap[durum?.toLowerCase()] || "💍";
+};
+
+const formatNetworkRelation = (iliski, digerIliski) => {
+  if (iliski === "diger" && digerIliski) {
+    return digerIliski;
+  }
+  const relationMap = {
+    ogrenci: "Öğrencim",
+    hoca: "Hocam",
+    lise_arkadasi: "Lise Arkadaşım",
+    universite_arkadasi: "Üniversite Arkadaşım",
+    meslektas: "Meslektaşım",
+    diger: "Diğer",
+  };
+  return relationMap[iliski?.toLowerCase()] || iliski;
+};
+
+const getNetworkIcon = (iliski) => {
+  const iconMap = {
+    ogrenci: "🎓",
+    hoca: "👨‍🏫",
+    lise_arkadasi: "🏫",
+    universite_arkadasi: "🎓",
+    meslektas: "💼",
+    diger: "👤",
+  };
+  return iconMap[iliski?.toLowerCase()] || "👤";
+};
+
 const TemplateRenderer = ({
   formData,
   templateType = "modern",
@@ -71,6 +120,9 @@ const TemplateRenderer = ({
   sectionOrder = [],
   moveSectionUp = () => {},
   moveSectionDown = () => {},
+  comments = [],
+  onCommentSubmit = () => {},
+  onToggleSectionVisibility = () => {},
 }) => {
   // Bölüm görünürlüğü kontrolü
   const isSectionVisible = (sectionId) => {
@@ -336,16 +388,19 @@ const TemplateRenderer = ({
     isDraggable = false
   ) => {
     const accentColor = getSectionColor(sectionKey);
+    const isVisible = isSectionVisible(sectionKey);
 
     return (
       <div
         key={sectionKey}
         className={`${config.cardStyle} ${
           isDraggable && isEditing ? "cursor-move" : ""
-        } backdrop-blur-sm`}
+        } backdrop-blur-sm relative ${
+          !isVisible && isEditing ? "opacity-50" : ""
+        }`}
         style={{
           borderRadius: `${customization.borderRadius || 12}px`,
-          padding: `${customization.padding || 24}px`,
+          padding: `2rem`,
           marginBottom: `${customization.sectionGap || 32}px`,
           ...getCardStyle(),
         }}
@@ -364,13 +419,30 @@ const TemplateRenderer = ({
             </span>
             <span className="text-base md:text-lg lg:text-xl">{title}</span>
           </div>
+
           {isEditing && (
-            <button
-              onClick={() => onEditItem(sectionKey, null)}
-              className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
-            >
-              <FiEdit3 className="w-3 h-3" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Görünürlük Butonu */}
+              <button
+                onClick={() => onToggleSectionVisibility?.(sectionKey)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-all"
+                title={isVisible ? "Bölümü Gizle" : "Bölümü Göster"}
+              >
+                {isVisible ? (
+                  <FiEye className="w-4 h-4 text-white" />
+                ) : (
+                  <FiEyeOff className="w-4 h-4 text-white/50" />
+                )}
+              </button>
+
+              {/* Düzenle Butonu */}
+              <button
+                onClick={() => onEditItem(sectionKey, null)}
+                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
+              >
+                <FiEdit3 className="w-3 h-3" />
+              </button>
+            </div>
           )}
         </h2>
         {children}
@@ -495,8 +567,33 @@ const TemplateRenderer = ({
     return null;
   };
 
+  // Render custom section
+  const renderCustomSection = (customSection) => {
+    const sectionKey = `custom_${customSection.id}`;
+    const isVisible = customSection.visible ?? true;
+
+    // Düzenleme modunda gizli bölümleri de göster ama opacity düşük
+    if (!isVisible && !isEditing) return null;
+
+    return renderSection(
+      sectionKey,
+      customSection.title,
+      <FiFileText className="w-4 h-4" />,
+      <div
+        className={`${config.textColor} leading-relaxed`}
+        dangerouslySetInnerHTML={{ __html: customSection.content }}
+        style={{
+          fontSize: `${customization.fontSize?.body || 14}px`,
+          lineHeight: customization.lineHeight || 1.6,
+        }}
+      />
+    );
+  };
+
   // Render content based on layout
   const renderContent = () => {
+    const customSections = customization.customSections || [];
+
     const allSections = (
       <>
         {/* Contact, Education, Skills Grid - Hero ve Default Layout için */}
@@ -1495,7 +1592,14 @@ const TemplateRenderer = ({
           <div
             className={`w-full lg:w-1/4 p-4 md:p-6 lg:p-8 rounded-2xl shadow-2xl`}
             style={{
-              backgroundColor: customization.professionalLeftBg || "#1e3a8a",
+              background: customization.colorPalette?.primary
+                ? `linear-gradient(135deg, ${
+                    customization.colorPalette.primary
+                  }, ${
+                    customization.colorPalette.secondary ||
+                    customization.colorPalette.primary
+                  })`
+                : customization.professionalLeftBg || "#1e3a8a",
               color: customization.professionalLeftText || "#ffffff",
             }}
           >
@@ -1534,7 +1638,7 @@ const TemplateRenderer = ({
             </div>
 
             {/* İletişim Bilgileri */}
-            {formData.iletisim && (
+            {isSectionVisible("contact") && formData.iletisim && (
               <div className="mb-6 md:mb-8">
                 <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4 pb-2 border-b border-white/30 flex items-center justify-between">
                   <div className="flex items-center">
@@ -1542,12 +1646,38 @@ const TemplateRenderer = ({
                     İletişim Bilgileri
                   </div>
                   {isEditing && (
-                    <button
-                      onClick={() => onEditItem("contact", formData.iletisim)}
-                      className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
-                    >
-                      <FiEdit3 className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* Görünürlük Butonu */}
+                      <button
+                        onClick={() => onToggleSectionVisibility?.("contact")}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-all cursor-pointer relative group"
+                        title={
+                          isSectionVisible("contact")
+                            ? "Bölümü Gizle"
+                            : "Bölümü Göster"
+                        }
+                      >
+                        {isSectionVisible("contact") ? (
+                          <FiEye className="w-4 h-4 text-white" />
+                        ) : (
+                          <FiEyeOff className="w-4 h-4 text-white/50" />
+                        )}
+                        {/* Tooltip */}
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                          {isSectionVisible("contact")
+                            ? "Bölümü Gizle"
+                            : "Bölümü Göster"}
+                        </span>
+                      </button>
+
+                      {/* Düzenle Butonu */}
+                      <button
+                        onClick={() => onEditItem("contact", formData.iletisim)}
+                        className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
+                      >
+                        <FiEdit3 className="w-3 h-3" />
+                      </button>
+                    </div>
                   )}
                 </h3>
                 <div className="space-y-3">
@@ -1640,6 +1770,8 @@ const TemplateRenderer = ({
                 onDelete={onDeleteItem}
                 onMoveUp={onMoveUp}
                 onMoveDown={onMoveDown}
+                customization={customization}
+                onToggleSectionVisibility={onToggleSectionVisibility}
                 renderContent={(yetenek, index) => (
                   <div>
                     <div className="flex justify-between mb-2">
@@ -1680,6 +1812,8 @@ const TemplateRenderer = ({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   renderContent={() => null}
+                  customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                 />
               )
             )}
@@ -1698,6 +1832,8 @@ const TemplateRenderer = ({
                 onDelete={onDeleteItem}
                 onMoveUp={onMoveUp}
                 onMoveDown={onMoveDown}
+                customization={customization}
+                onToggleSectionVisibility={onToggleSectionVisibility}
                 renderContent={(dil, index) => (
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">
@@ -1723,8 +1859,205 @@ const TemplateRenderer = ({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   renderContent={() => null}
+                  customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                 />
               )
+            )}
+
+            {/* Yaşadığı Yerler */}
+            {isSectionVisible("cities") &&
+            formData.yasadigiYerler &&
+            formData.yasadigiYerler.length > 0 ? (
+              <EditableSidebarSection
+                title="Yaşadığı Yerler"
+                icon={<FiMapPin className="w-5 h-5" />}
+                sectionKey="cities"
+                items={formData.yasadigiYerler}
+                isEditing={isEditing}
+                onEdit={onEditItem}
+                onDelete={onDeleteItem}
+                onMoveUp={onMoveUp}
+                onMoveDown={onMoveDown}
+                customization={customization}
+                onToggleSectionVisibility={onToggleSectionVisibility}
+                renderContent={(yer, index) => (
+                  <div className="flex items-center gap-2">
+                    <FiMapPin className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm">{yer.sehir}</span>
+                  </div>
+                )}
+              />
+            ) : (
+              isEditing && (
+                <EditableSidebarSection
+                  title="Yaşadığı Yerler"
+                  icon={<FiMapPin className="w-5 h-5" />}
+                  sectionKey="cities"
+                  items={[]}
+                  isEditing={isEditing}
+                  onEdit={onEditItem}
+                  onDelete={onDeleteItem}
+                  onMoveUp={onMoveUp}
+                  onMoveDown={onMoveDown}
+                  renderContent={() => null}
+                  customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
+                />
+              )
+            )}
+
+            {/* İlişki Durumu */}
+            {isSectionVisible("relationship") && formData.iliskiDurumu ? (
+              <div className="mb-6 md:mb-8">
+                <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4 pb-2 border-b border-white/30 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <FiHeart className="w-5 h-5 mr-2" />
+                    İlişki Durumu
+                  </div>
+                  {isEditing && (
+                    <div className="flex items-center gap-2">
+                      {/* Görünürlük Butonu */}
+                      <button
+                        onClick={() =>
+                          onToggleSectionVisibility?.("relationship")
+                        }
+                        className="p-2 hover:bg-white/10 rounded-lg transition-all cursor-pointer relative group"
+                        title={
+                          isSectionVisible("relationship")
+                            ? "Bölümü Gizle"
+                            : "Bölümü Göster"
+                        }
+                      >
+                        {isSectionVisible("relationship") ? (
+                          <FiEye className="w-4 h-4 text-white" />
+                        ) : (
+                          <FiEyeOff className="w-4 h-4 text-white/50" />
+                        )}
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                          {isSectionVisible("relationship")
+                            ? "Bölümü Gizle"
+                            : "Bölümü Göster"}
+                        </span>
+                      </button>
+
+                      {/* Düzenle Butonu */}
+                      <button
+                        onClick={() =>
+                          onEditItem("relationship", formData.iliskiDurumu)
+                        }
+                        className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
+                      >
+                        <FiEdit3 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </h3>
+                <div className="flex items-center gap-2 text-white/90">
+                  <span className="text-lg">
+                    {getRelationshipIcon(formData.iliskiDurumu.durum)}
+                  </span>
+                  <span className="text-sm">
+                    {formatRelationship(formData.iliskiDurumu.durum)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              isEditing && (
+                <div className="mb-6 md:mb-8">
+                  <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4 pb-2 border-b border-white/30 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <FiHeart className="w-5 h-5 mr-2" />
+                      İlişki Durumu
+                    </div>
+                    <button
+                      onClick={() => onEditItem("relationship", null)}
+                      className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
+                    >
+                      <FiPlus className="w-3 h-3" />
+                    </button>
+                  </h3>
+                  <p className="text-xs text-white/50">
+                    İlişki durumu eklemek için + butonuna tıklayın
+                  </p>
+                </div>
+              )
+            )}
+
+            {/* Tuttuğu Takımlar */}
+            {isSectionVisible("teams") &&
+            formData.tuttuguTakimlar &&
+            formData.tuttuguTakimlar.length > 0 ? (
+              <EditableSidebarSection
+                title="Tuttuğu Takımlar"
+                icon={<FiAward className="w-5 h-5" />}
+                sectionKey="teams"
+                items={formData.tuttuguTakimlar}
+                isEditing={isEditing}
+                onEdit={onEditItem}
+                onDelete={onDeleteItem}
+                onMoveUp={onMoveUp}
+                onMoveDown={onMoveDown}
+                customization={customization}
+                onToggleSectionVisibility={onToggleSectionVisibility}
+                renderContent={(takim, index) => (
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">⚽</span>
+                    <span className="text-sm">{takim.takimAdi}</span>
+                  </div>
+                )}
+              />
+            ) : (
+              isEditing && (
+                <EditableSidebarSection
+                  title="Tuttuğu Takımlar"
+                  icon={<FiAward className="w-5 h-5" />}
+                  sectionKey="teams"
+                  items={[]}
+                  isEditing={isEditing}
+                  onEdit={onEditItem}
+                  onDelete={onDeleteItem}
+                  onMoveUp={onMoveUp}
+                  onMoveDown={onMoveDown}
+                  renderContent={() => null}
+                  customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
+                />
+              )
+            )}
+
+            {/* Görüntülenme ve Beğeni */}
+            {!isEditing && (
+              <div className="mt-6 pt-6 border-t border-white/20">
+                <div className="space-y-3">
+                  {/* Görüntülenme */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-white/80">
+                      <FiUser className="w-4 h-4" />
+                      <span className="text-sm">Görüntülenme</span>
+                    </div>
+                    <span className="text-white font-bold text-lg">
+                      {viewCount || 0}
+                    </span>
+                  </div>
+
+                  {/* Beğeni */}
+                  {onLikeClick && (
+                    <button
+                      onClick={onLikeClick}
+                      className="w-full flex items-center justify-between hover:bg-white/5 p-2 rounded-lg transition-all"
+                    >
+                      <div className="flex items-center gap-2 text-white/80">
+                        <FiHeart className="w-4 h-4" />
+                        <span className="text-sm">Beğeni</span>
+                      </div>
+                      <span className="text-white font-bold text-lg">
+                        {likeCount || 0}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 
@@ -1834,6 +2167,7 @@ const TemplateRenderer = ({
                     onMoveDown={onMoveDown}
                     customization={customization}
                     renderItem={() => null}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
                   />
                 )
               )}
@@ -1893,6 +2227,7 @@ const TemplateRenderer = ({
                     onMoveDown={onMoveDown}
                     customization={customization}
                     renderItem={() => null}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
                   />
                 )
               )}
@@ -1993,6 +2328,7 @@ const TemplateRenderer = ({
                     onMoveDown={onMoveDown}
                     customization={customization}
                     renderItem={() => null}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
                   />
                 )
               )}
@@ -2041,6 +2377,7 @@ const TemplateRenderer = ({
                     onMoveDown={onMoveDown}
                     customization={customization}
                     renderItem={() => null}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
                   />
                 )
               )}
@@ -2099,6 +2436,7 @@ const TemplateRenderer = ({
                     onMoveDown={onMoveDown}
                     customization={customization}
                     renderItem={() => null}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
                   />
                 )
               )}
@@ -2120,6 +2458,7 @@ const TemplateRenderer = ({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                   renderItem={(proje, index) => {
                     // Teknolojiler string ise array'e çevir
                     const teknolojiler = Array.isArray(proje.teknolojiler)
@@ -2184,6 +2523,7 @@ const TemplateRenderer = ({
                     onMoveDown={onMoveDown}
                     customization={customization}
                     renderItem={() => null}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
                   />
                 )
               )}
@@ -2300,6 +2640,7 @@ const TemplateRenderer = ({
                     onMoveDown={onMoveDown}
                     customization={customization}
                     renderItem={() => null}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
                   />
                 )
               )}
@@ -2350,6 +2691,7 @@ const TemplateRenderer = ({
                     onMoveDown={onMoveDown}
                     customization={customization}
                     renderItem={() => null}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
                   />
                 )
               )}
@@ -2398,6 +2740,7 @@ const TemplateRenderer = ({
                     onMoveDown={onMoveDown}
                     customization={customization}
                     renderItem={() => null}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
                   />
                 )
               )}
@@ -2462,9 +2805,141 @@ const TemplateRenderer = ({
                     onMoveDown={onMoveDown}
                     customization={customization}
                     renderItem={() => null}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
                   />
                 )
               )}
+
+              {/* Network / Bağlantılar */}
+              {isSectionVisible("network") &&
+              formData.network &&
+              formData.network.length > 0 ? (
+                <EditableCard
+                  title="Network / Bağlantılar"
+                  icon={<FiUsers className="w-5 h-5" />}
+                  sectionKey="network"
+                  items={formData.network}
+                  borderColor="border-purple-300"
+                  bgColor="bg-purple-100"
+                  iconColor="text-purple-600"
+                  colSpan="lg:col-span-2"
+                  isEditing={isEditing}
+                  onEdit={onEditItem}
+                  onDelete={onDeleteItem}
+                  onMoveUp={onMoveUp}
+                  onMoveDown={onMoveDown}
+                  customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
+                  renderItem={(person, index) => (
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl flex-shrink-0">
+                          {getNetworkIcon(person.iliskiTuru)}
+                        </span>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">
+                            {person.ad}
+                          </h3>
+                          <p className="text-sm text-purple-600 font-medium">
+                            {formatNetworkRelation(
+                              person.iliskiTuru,
+                              person.digerIliski
+                            )}
+                          </p>
+                          {person.aciklama && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              {person.aciklama}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                />
+              ) : (
+                isEditing && (
+                  <EditableCard
+                    title="Network / Bağlantılar"
+                    icon={<FiUsers className="w-5 h-5" />}
+                    sectionKey="network"
+                    items={[]}
+                    borderColor="border-purple-300"
+                    bgColor="bg-purple-100"
+                    iconColor="text-purple-600"
+                    colSpan="lg:col-span-2"
+                    isEditing={isEditing}
+                    onEdit={onEditItem}
+                    onDelete={onDeleteItem}
+                    onMoveUp={onMoveUp}
+                    onMoveDown={onMoveDown}
+                    customization={customization}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
+                    renderItem={() => null}
+                  />
+                )
+              )}
+
+              {/* Okuduğu Kitaplar */}
+              {isSectionVisible("books") &&
+              formData.okuduguKitaplar &&
+              formData.okuduguKitaplar.length > 0 ? (
+                <EditableCard
+                  title="Okuduğu Kitaplar"
+                  icon={<FiBook className="w-5 h-5" />}
+                  sectionKey="books"
+                  items={formData.okuduguKitaplar}
+                  borderColor="border-amber-300"
+                  bgColor="bg-amber-100"
+                  iconColor="text-amber-600"
+                  colSpan="lg:col-span-2"
+                  isEditing={isEditing}
+                  onEdit={onEditItem}
+                  onDelete={onDeleteItem}
+                  onMoveUp={onMoveUp}
+                  onMoveDown={onMoveDown}
+                  customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
+                  renderItem={(kitap, index) => (
+                    <div className="flex items-center gap-3 py-2">
+                      <span className="text-2xl flex-shrink-0">📚</span>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">
+                          {kitap.kitapAdi}
+                        </p>
+                        <p className="text-sm text-gray-600">{kitap.yazar}</p>
+                      </div>
+                    </div>
+                  )}
+                />
+              ) : (
+                isEditing && (
+                  <EditableCard
+                    title="Okuduğu Kitaplar"
+                    icon={<FiBook className="w-5 h-5" />}
+                    sectionKey="books"
+                    items={[]}
+                    borderColor="border-amber-300"
+                    bgColor="bg-amber-100"
+                    iconColor="text-amber-600"
+                    colSpan="lg:col-span-2"
+                    isEditing={isEditing}
+                    onEdit={onEditItem}
+                    onDelete={onDeleteItem}
+                    onMoveUp={onMoveUp}
+                    onMoveDown={onMoveDown}
+                    customization={customization}
+                    onToggleSectionVisibility={onToggleSectionVisibility}
+                    renderItem={() => null}
+                  />
+                )
+              )}
+
+              {/* Özel Bölümler */}
+              {customSections.map((customSection) => (
+                <div key={customSection.id} className="lg:col-span-2">
+                  {renderCustomSection(customSection)}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -2602,6 +3077,284 @@ const TemplateRenderer = ({
       <div className="relative max-w-6xl mx-auto p-4 md:p-6 lg:p-8">
         {!config.layout && renderHeader()}
         {renderContent()}
+      </div>
+    </div>
+  );
+};
+
+// Comments Section Component
+const CommentsSection = ({
+  comments,
+  onCommentSubmit,
+  templateType,
+  config,
+}) => {
+  const [commentForm, setCommentForm] = useState({
+    authorName: "",
+    authorEmail: "",
+    content: "",
+  });
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+
+    if (
+      !commentForm.authorName.trim() ||
+      !commentForm.authorEmail.trim() ||
+      !commentForm.content.trim()
+    ) {
+      alert("Lütfen tüm alanları doldurun");
+      return;
+    }
+
+    setIsSubmittingComment(true);
+    try {
+      await onCommentSubmit(commentForm);
+      setCommentForm({
+        authorName: "",
+        authorEmail: "",
+        content: "",
+      });
+      alert("Yorumunuz admin onayına gönderildi. Teşekkürler!");
+    } catch (error) {
+      console.error("Yorum gönderme hatası:", error);
+      alert("Bir hata oluştu");
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  return (
+    <div className="mt-12">
+      <div
+        className={`${
+          templateType === "hero"
+            ? "bg-black/40 backdrop-blur-sm border border-white/20"
+            : "bg-white/95 backdrop-blur-sm border border-gray-200"
+        } rounded-xl p-8 shadow-lg`}
+      >
+        <h2
+          className={`text-xl font-bold mb-6 flex items-center gap-2 ${
+            templateType === "hero" ? "text-white" : "text-gray-800"
+          }`}
+        >
+          <FiMessageSquare className="text-blue-400" />
+          Yorumlar ({comments.length})
+        </h2>
+
+        {/* Yorum Listesi */}
+        {comments.length > 0 ? (
+          <div className="space-y-4 mb-8">
+            {comments.map((comment) => (
+              <div
+                key={comment.id}
+                className={`border rounded-lg p-4 backdrop-blur-sm ${
+                  templateType === "hero"
+                    ? "border-gray-600 bg-gray-800/50"
+                    : "border-gray-200 bg-gray-50"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      templateType === "hero" ? "bg-gray-700" : "bg-gray-200"
+                    }`}
+                  >
+                    <FiUser
+                      className={`w-5 h-5 ${
+                        templateType === "hero"
+                          ? "text-gray-300"
+                          : "text-gray-600"
+                      }`}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4
+                        className={`font-semibold ${
+                          templateType === "hero"
+                            ? "text-white"
+                            : "text-gray-800"
+                        }`}
+                      >
+                        {comment.authorName}
+                      </h4>
+                      <span
+                        className={`text-sm ${
+                          templateType === "hero"
+                            ? "text-gray-400"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {new Date(comment.createdAt).toLocaleDateString(
+                          "tr-TR"
+                        )}
+                      </span>
+                    </div>
+                    <p
+                      className={`leading-relaxed ${
+                        templateType === "hero"
+                          ? "text-gray-300"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {comment.content}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 mb-8">
+            <FiMessageSquare
+              className={`w-16 h-16 mx-auto mb-4 ${
+                templateType === "hero" ? "text-gray-500" : "text-gray-400"
+              }`}
+            />
+            <p
+              className={`${
+                templateType === "hero" ? "text-gray-400" : "text-gray-600"
+              }`}
+            >
+              Henüz yorum yapılmamış. İlk yorumu siz yapın!
+            </p>
+          </div>
+        )}
+
+        {/* Yorum Formu */}
+        <div
+          className={`border-t pt-6 ${
+            templateType === "hero" ? "border-gray-600" : "border-gray-200"
+          }`}
+        >
+          <h3
+            className={`text-lg font-semibold mb-4 ${
+              templateType === "hero" ? "text-white" : "text-gray-800"
+            }`}
+          >
+            Yorum Yap
+          </h3>
+          <form onSubmit={handleCommentSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  className={`block text-sm font-medium mb-1 ${
+                    templateType === "hero" ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Adınız *
+                </label>
+                <div className="relative">
+                  <FiUser
+                    className={`absolute left-3 top-1/2 -translate-y-1/2 ${
+                      templateType === "hero"
+                        ? "text-gray-400"
+                        : "text-gray-500"
+                    }`}
+                  />
+                  <input
+                    type="text"
+                    value={commentForm.authorName}
+                    onChange={(e) =>
+                      setCommentForm({
+                        ...commentForm,
+                        authorName: e.target.value,
+                      })
+                    }
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      templateType === "hero"
+                        ? "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                    }`}
+                    placeholder="Adınızı girin"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label
+                  className={`block text-sm font-medium mb-1 ${
+                    templateType === "hero" ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Email *
+                </label>
+                <div className="relative">
+                  <FiMail
+                    className={`absolute left-3 top-1/2 -translate-y-1/2 ${
+                      templateType === "hero"
+                        ? "text-gray-400"
+                        : "text-gray-500"
+                    }`}
+                  />
+                  <input
+                    type="email"
+                    value={commentForm.authorEmail}
+                    onChange={(e) =>
+                      setCommentForm({
+                        ...commentForm,
+                        authorEmail: e.target.value,
+                      })
+                    }
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      templateType === "hero"
+                        ? "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                    }`}
+                    placeholder="email@example.com"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+            <div>
+              <label
+                className={`block text-sm font-medium mb-1 ${
+                  templateType === "hero" ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
+                Yorumunuz *
+              </label>
+              <textarea
+                value={commentForm.content}
+                onChange={(e) =>
+                  setCommentForm({ ...commentForm, content: e.target.value })
+                }
+                rows={4}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
+                  templateType === "hero"
+                    ? "bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+                placeholder="Yorumunuzu buraya yazın..."
+                required
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isSubmittingComment}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                {isSubmittingComment ? (
+                  <FiLoader className="w-4 h-4 animate-spin" />
+                ) : (
+                  <FiSend className="w-4 h-4" />
+                )}
+                {isSubmittingComment ? "Gönderiliyor..." : "Yorum Gönder"}
+              </button>
+            </div>
+          </form>
+          <p
+            className={`text-xs mt-2 ${
+              templateType === "hero" ? "text-gray-400" : "text-gray-500"
+            }`}
+          >
+            * Yorumunuz admin onayından sonra yayınlanacaktır.
+          </p>
+        </div>
       </div>
     </div>
   );

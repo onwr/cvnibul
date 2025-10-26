@@ -106,6 +106,7 @@ model CV {
   
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointments Appointment[]
+  comments     Comment[]
   
   @@index([slug])
   @@index([userId])
@@ -164,4 +165,19 @@ model PhotoApproval {
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+  authorName  String
+  authorEmail String
+  cvId        String
+  cv          CV       @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  status      String   @default("pending") // pending, approved, rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([cvId])
+  @@index([status])
 }

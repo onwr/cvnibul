@@ -4,12 +4,11 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiSettings,
-  FiArrowLeft,
-  FiEdit3,
+  FiChevronDown,
+  FiChevronUp,
   FiLayout,
   FiImage,
   FiLayers,
-  FiSave,
 } from "react-icons/fi";
 import GeneralTab from "./customization/tabs/GeneralTab";
 import VisualTab from "./customization/tabs/VisualTab";
@@ -22,150 +21,152 @@ const CustomizationPanel = ({
   isEditing,
   setIsEditing,
   selectedTheme,
+  onFinishEditing,
+  onOpenCustomSectionModal,
 }) => {
-  const [activeTab, setActiveTab] = useState("general");
+  const [expandedSections, setExpandedSections] = useState({
+    general: true,
+    visual: false,
+    sections: false,
+  });
 
-  const tabs = [
-    { id: "general", label: "Genel", icon: FiLayout },
-    { id: "visual", label: "Görsel", icon: FiImage },
-    { id: "sections", label: "Bölümler", icon: FiLayers },
+  const sections = [
+    {
+      id: "general",
+      label: "Genel Ayarlar",
+      icon: FiLayout,
+      component: GeneralTab,
+      description: "Font, renk ve temel ayarlar",
+    },
+    {
+      id: "visual",
+      label: "Görsel Ayarlar",
+      icon: FiImage,
+      component: VisualTab,
+      description: "Arkaplan ve görsel efektler",
+    },
+    {
+      id: "sections",
+      label: "Bölüm Yönetimi",
+      icon: FiLayers,
+      component: SectionsTab,
+      description: "CV bölümlerini düzenle",
+    },
   ];
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "general":
-        return (
-          <GeneralTab
-            customization={customization}
-            setCustomization={setCustomization}
-          />
-        );
-      case "visual":
-        return (
-          <VisualTab
-            customization={customization}
-            setCustomization={setCustomization}
-          />
-        );
-      case "sections":
-        return (
-          <SectionsTab
-            customization={customization}
-            setCustomization={setCustomization}
-          />
-        );
-      case "export":
-        return (
-          <ExportTab
-            customization={customization}
-            setCustomization={setCustomization}
-          />
-        );
-      default:
-        return null;
-    }
+  const toggleSection = (sectionId) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }));
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className="bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-40"
-      style={{ height: "45vh" }}
-    >
-      <div className="h-full flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 shadow-lg">
-          <h3 className="text-base font-bold text-white flex items-center">
-            <FiSettings className="w-5 h-5 mr-2" />
-            CV Özelleştirme
-          </h3>
-
-          <div className="flex gap-3">
-            {/* Düzenle Butonu */}
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className={`px-4 py-2 backdrop-blur-sm text-white rounded-xl text-sm font-medium transition-all flex items-center border ${
-                isEditing
-                  ? "bg-orange-500/30 border-orange-300/50 hover:bg-orange-500/40"
-                  : "bg-white/20 border-white/30 hover:bg-white/30 hover:border-white/50"
-              }`}
-            >
-              <FiEdit3 className="w-4 h-4 mr-1.5" />
-              {isEditing ? "Düzenlemeyi Bitir" : "Düzenle"}
-            </button>
-
-            {/* Geri Butonu */}
-            <button
-              onClick={onBack}
-              className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-xl text-sm font-medium transition-all flex items-center border border-white/30 hover:border-white/50"
-            >
-              <FiArrowLeft className="w-4 h-4 mr-1.5" />
-              Şablon Seçimi
-            </button>
-          </div>
-        </div>
-
-        {/* Tema Bilgisi ve Değiştir Butonu */}
-        {selectedTheme && (
-          <div className="mx-4 mt-4 p-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-white font-bold text-lg flex items-center gap-2">
-                  <span className="text-2xl">{selectedTheme.icon}</span>
-                  {selectedTheme.name}
-                </div>
-                <div className="text-white/80 text-sm mt-1">Mevcut Tema</div>
-              </div>
-              <button
-                onClick={onBack}
-                className="px-4 py-2 bg-white text-emerald-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-md"
-              >
-                Tema Değiştir
-              </button>
+    <div className="space-y-4">
+      {/* Tema Bilgisi */}
+      {selectedTheme && (
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl">{selectedTheme.icon}</span>
+            <div>
+              <h3 className="text-white font-semibold text-sm">
+                {selectedTheme.name}
+              </h3>
+              <p className="text-white/70 text-xs">Mevcut Tema</p>
             </div>
           </div>
-        )}
-
-        {/* Tab Navigation */}
-        <div className="flex gap-2 px-4 py-3 bg-white border-b border-gray-100 overflow-x-auto">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md scale-105"
-                    : "bg-white text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 border-2 border-gray-100 hover:border-emerald-200"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+          <button
+            onClick={onBack}
+            className="w-full px-3 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-medium transition-colors border border-white/30"
+          >
+            Tema Değiştir
+          </button>
         </div>
+      )}
 
-        {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-              className="max-w-4xl mx-auto"
+      {/* Özelleştirme Bölümleri */}
+      <div className="space-y-3">
+        {sections.map((section) => {
+          const Icon = section.icon;
+          const Component = section.component;
+          const isExpanded = expandedSections[section.id];
+
+          return (
+            <div
+              key={section.id}
+              className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden"
             >
-              {renderTabContent()}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+              {/* Section Header */}
+              <button
+                onClick={() => toggleSection(section.id)}
+                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className="w-5 h-5 text-white" />
+                  <div>
+                    <h4 className="text-white font-medium text-sm">
+                      {section.label}
+                    </h4>
+                    <p className="text-white/60 text-xs">
+                      {section.description}
+                    </p>
+                  </div>
+                </div>
+                {isExpanded ? (
+                  <FiChevronUp className="w-4 h-4 text-white/60" />
+                ) : (
+                  <FiChevronDown className="w-4 h-4 text-white/60" />
+                )}
+              </button>
+
+              {/* Section Content */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-4 border-t border-white/10">
+                      <Component
+                        customization={customization}
+                        setCustomization={setCustomization}
+                        onOpenCustomSectionModal={onOpenCustomSectionModal}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
       </div>
-    </motion.div>
+
+      {/* Düzenle Butonu */}
+      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+        <button
+          onClick={() => {
+            if (isEditing) {
+              // Düzenleme modundaysa direkt yayınla
+              onFinishEditing();
+            } else {
+              // Düzenleme modunda değilse düzenleme moduna geç
+              setIsEditing(true);
+            }
+          }}
+          className={`w-full px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+            isEditing
+              ? "bg-green-500 hover:bg-green-600 text-white"
+              : "bg-white hover:bg-gray-50 text-gray-800"
+          }`}
+        >
+          <FiSettings className="w-4 h-4" />
+          {isEditing ? "Sayfayı Yayınla" : "CV'yi Düzenle"}
+        </button>
+      </div>
+    </div>
   );
 };
 

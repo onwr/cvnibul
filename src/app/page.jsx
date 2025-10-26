@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import Navigation from "@/components/cv/Navigation";
 import Features from "@/components/cv/Features";
 import Templates from "@/components/cv/Templates";
@@ -8,6 +9,7 @@ import Pricing from "@/components/cv/Pricing";
 import CTA from "@/components/cv/CTA";
 import Footer from "@/components/cv/Footer";
 import StepliKayitFormu from "@/components/cv/StepliKayitFormu";
+import { FiSearch } from "react-icons/fi";
 
 export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -27,17 +29,8 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        {/* Background Image with Blur */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: "url('/hero-back.jpg')",
-            filter: "blur(3px)",
-          }}
-        ></div>
-
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black/70"></div>
+        {/* Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600"></div>
 
         <div className="relative max-w-7xl mx-auto z-10">
           <div className="text-center mb-16">
@@ -46,10 +39,19 @@ export default function HomePage() {
               <br />
               <span className="text-blue-400">Kolayca Oluşturun</span>
             </h1>
-            <p className="text-xl text-gray-200 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl text-gray-200 max-w-2xl mx-auto leading-relaxed mb-8">
               Modern ve şık tasarımlarla profesyonel varlığınızı dijital dünyada
               sergileyin
             </p>
+
+            {/* Keşfet Butonu */}
+            <Link
+              href="/kesfet"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-white hover:bg-gray-100 text-blue-600 rounded-2xl font-bold text-lg transition-all shadow-2xl hover:shadow-3xl hover:scale-105"
+            >
+              <FiSearch className="w-6 h-6" />
+              CV'leri Keşfet
+            </Link>
           </div>
 
           {/* Form */}
