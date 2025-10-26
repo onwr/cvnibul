@@ -12,7 +12,7 @@ async function getCVData(slug) {
         isActive: true,
       },
       include: {
-    user: {
+        user: {
           select: {
             name: true,
             image: true,
@@ -62,7 +62,7 @@ export default async function CVPage({ params }) {
       <Navigation isScrolled={false} />
 
       {/* CV Content - Navbar için padding ekle */}
-      <div className="pt-16">
+      <div>
         <CVViewer cv={cv} />
       </div>
     </div>

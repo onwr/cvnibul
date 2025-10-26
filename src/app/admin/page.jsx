@@ -20,6 +20,11 @@ import {
   FiZoomIn,
   FiMessageSquare,
   FiEdit3,
+  FiBriefcase,
+  FiMail,
+  FiMapPin,
+  FiGlobe,
+  FiFilter,
 } from "react-icons/fi";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -63,6 +68,13 @@ export default function AdminDashboard() {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentFilter, setCommentFilter] = useState("all");
 
+  // Partnerships
+  const [partnerships, setPartnerships] = useState([]);
+  const [partnershipsLoading, setPartnershipsLoading] = useState(false);
+  const [partnershipSearch, setPartnershipSearch] = useState("");
+  const [partnershipCategory, setPartnershipCategory] = useState("");
+  const [selectedPartnership, setSelectedPartnership] = useState(null);
+
   // CV Edit Modal
   const [editingCV, setEditingCV] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -85,6 +97,8 @@ export default function AdminDashboard() {
         loadStats();
       } else if (activeTab === "comments") {
         loadComments();
+      } else if (activeTab === "partnerships") {
+        loadPartnerships();
       }
     }
   }, [
@@ -185,6 +199,30 @@ export default function AdminDashboard() {
       console.error("Yorumlar yüklenemedi:", error);
     } finally {
       setCommentsLoading(false);
+    }
+  };
+
+  const loadPartnerships = async () => {
+    setPartnershipsLoading(true);
+    try {
+      console.log("🔄 İş birliği başvuruları yükleniyor...");
+      const response = await fetch("/api/partnership");
+      console.log("📡 Response status:", response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("📊 Gelen data:", data);
+        console.log("📋 Toplam başvuru:", data.partnerships?.length || 0);
+        setPartnerships(data.partnerships || []);
+      } else {
+        console.error("❌ Response OK değil:", response.status);
+        const errorData = await response.json();
+        console.error("❌ Error data:", errorData);
+      }
+    } catch (error) {
+      console.error("❌ Başvurular yüklenemedi:", error);
+    } finally {
+      setPartnershipsLoading(false);
     }
   };
 
@@ -419,6 +457,28 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeletePartnership = async (partnershipId) => {
+    if (!confirm("Bu başvuruyu silmek istediğinizden emin misiniz?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/partnership?id=${partnershipId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        alert("Başvuru silindi");
+        loadPartnerships();
+      } else {
+        alert("Başvuru silinirken bir hata oluştu");
+      }
+    } catch (error) {
+      console.error("Silme hatası:", error);
+      alert("Bir hata oluştu");
+    }
+  };
+
   const tabs = [
     {
       id: "cvs",
@@ -448,6 +508,12 @@ export default function AdminDashboard() {
       name: "Yorumlar",
       icon: FiMessageSquare,
       badge: comments.filter((c) => c.status === "pending").length,
+    },
+    {
+      id: "partnerships",
+      name: "İş Birlikleri",
+      icon: FiBriefcase,
+      badge: partnerships.length,
     },
   ];
 
@@ -597,6 +663,27 @@ export default function AdminDashboard() {
                 onApprove={handleApproveComment}
                 onReject={handleRejectComment}
                 onDelete={handleDeleteComment}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === "partnerships" && (
+            <motion.div
+              key="partnerships"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <PartnershipsTab
+                partnerships={partnerships}
+                loading={partnershipsLoading}
+                search={partnershipSearch}
+                setSearch={setPartnershipSearch}
+                categoryFilter={partnershipCategory}
+                setCategoryFilter={setPartnershipCategory}
+                onDelete={handleDeletePartnership}
+                selectedPartnership={selectedPartnership}
+                setSelectedPartnership={setSelectedPartnership}
               />
             </motion.div>
           )}
@@ -1663,6 +1750,397 @@ function PhotoLightbox({ photo, onClose }) {
           {new Date(photo.createdAt).toLocaleDateString("tr-TR")}
         </p>
       </div>
+    </div>
+  );
+}
+
+// Partnerships Tab Component
+function PartnershipsTab({
+  partnerships,
+  loading,
+  search,
+  setSearch,
+  categoryFilter,
+  setCategoryFilter,
+  onDelete,
+  selectedPartnership,
+  setSelectedPartnership,
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <FiLoader className="w-8 h-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
+  // Filter partnerships
+  const filteredPartnerships = partnerships.filter((p) => {
+    const matchesSearch =
+      p.firstName.toLowerCase().includes(search.toLowerCase()) ||
+      p.lastName.toLowerCase().includes(search.toLowerCase()) ||
+      p.email.toLowerCase().includes(search.toLowerCase()) ||
+      p.businessName.toLowerCase().includes(search.toLowerCase());
+
+    const matchesCategory = categoryFilter
+      ? p.category === categoryFilter
+      : true;
+
+    return matchesSearch && matchesCategory;
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Search & Filter */}
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Search */}
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Ad, soyad, email veya işletme adı ile ara..."
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-500"
+            />
+          </div>
+
+          {/* Category Filter */}
+          <div className="relative">
+            <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 appearance-none"
+            >
+              <option value="">Tüm Kategoriler</option>
+              <option value="İçerik Oluşturucular ve Etkileyiciler">
+                İçerik Oluşturucular ve Etkileyiciler
+              </option>
+              <option value="Topluluklar ve Kullanıcı Tarafından Oluşturulan İçerik">
+                Topluluklar
+              </option>
+              <option value="Editöryal İçerik">Editöryal İçerik</option>
+              <option value="İndirim Kodu">İndirim Kodu</option>
+              <option value="Medya İçeriği">Medya İçeriği</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-600 mb-2">
+              Toplam Başvuru
+            </h3>
+            <p className="text-3xl font-bold text-blue-600">
+              {filteredPartnerships.length}
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          >
+            ↻ Yenile
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Tarih
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Ad Soyad
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Kategori
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  İşletme
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Hedef Ülke
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  İşlemler
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredPartnerships.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="7"
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
+                    Başvuru bulunamadı
+                  </td>
+                </tr>
+              ) : (
+                filteredPartnerships.map((partnership) => (
+                  <tr key={partnership.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(partnership.createdAt).toLocaleDateString(
+                        "tr-TR"
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {partnership.firstName} {partnership.lastName}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {partnership.email}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {partnership.category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {partnership.businessName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {partnership.targetCountry}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setSelectedPartnership(partnership)}
+                          className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                          title="Detay"
+                        >
+                          <FiEye />
+                        </button>
+                        <button
+                          onClick={() => onDelete(partnership.id)}
+                          className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                          title="Sil"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Detail Modal */}
+      {selectedPartnership && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={() => setSelectedPartnership(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 flex items-center justify-between rounded-t-2xl">
+              <div>
+                <h2 className="text-2xl font-bold">
+                  {selectedPartnership.firstName} {selectedPartnership.lastName}
+                </h2>
+                <p className="text-blue-100 text-sm mt-1">
+                  {new Date(selectedPartnership.createdAt).toLocaleDateString(
+                    "tr-TR",
+                    {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedPartnership(null)}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <FiX className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* İletişim Bilgileri */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <FiMail className="w-5 h-5 text-blue-600" />
+                  İletişim Bilgileri
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="text-gray-900 font-medium">
+                      {selectedPartnership.email}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Ad Soyad</p>
+                    <p className="text-gray-900 font-medium">
+                      {selectedPartnership.firstName}{" "}
+                      {selectedPartnership.lastName}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* İş Bilgileri */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <FiBriefcase className="w-5 h-5 text-emerald-600" />
+                  İş Bilgileri
+                </h3>
+                <div className="space-y-4 bg-gray-50 rounded-lg p-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Kategori</p>
+                    <p className="text-gray-900 font-medium">
+                      {selectedPartnership.category}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Tanıtım Alanı</p>
+                    <p className="text-gray-900 font-medium">
+                      {selectedPartnership.promotionArea}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">İşletme Adı</p>
+                    <p className="text-gray-900 font-medium">
+                      {selectedPartnership.businessName}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">
+                      Website/Sosyal Medya
+                    </p>
+                    <a
+                      href={selectedPartnership.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-700 font-medium underline"
+                    >
+                      {selectedPartnership.websiteUrl}
+                    </a>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">İş Açıklaması</p>
+                    <p className="text-gray-900">
+                      {selectedPartnership.description}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">İçerik Hakkında</p>
+                    <p className="text-gray-900">
+                      {selectedPartnership.contentAbout}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Konum Bilgileri */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <FiMapPin className="w-5 h-5 text-red-600" />
+                  Konum ve Adres
+                </h3>
+                <div className="space-y-4 bg-gray-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Hedef Ülke</p>
+                      <p className="text-gray-900 font-medium">
+                        {selectedPartnership.targetCountry}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Ülke</p>
+                      <p className="text-gray-900 font-medium">
+                        {selectedPartnership.country}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Adres</p>
+                    <p className="text-gray-900">
+                      {selectedPartnership.flatNumber &&
+                        `${selectedPartnership.flatNumber}, `}
+                      {selectedPartnership.buildingNumber}{" "}
+                      {selectedPartnership.street}, {selectedPartnership.city}
+                      {selectedPartnership.county &&
+                        `, ${selectedPartnership.county}`}
+                      , {selectedPartnership.postalCode}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Vergi Ülkesi</p>
+                    <p className="text-gray-900 font-medium">
+                      {selectedPartnership.taxCountry}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Onaylar */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <FiGlobe className="w-5 h-5 text-purple-600" />
+                  Onaylar
+                </h3>
+                <div className="space-y-2 bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedPartnership.newsletter}
+                      readOnly
+                      className="w-5 h-5 text-blue-600"
+                    />
+                    <span className="text-gray-700">Bültene abone oldu</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedPartnership.terms}
+                      readOnly
+                      className="w-5 h-5 text-blue-600"
+                    />
+                    <span className="text-gray-700">
+                      Şartlar ve koşulları kabul etti
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-gray-50 p-6 rounded-b-2xl border-t border-gray-200">
+              <button
+                onClick={() => setSelectedPartnership(null)}
+                className="w-full px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

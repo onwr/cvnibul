@@ -181,3 +181,42 @@ model Comment {
   @@index([cvId])
   @@index([status])
 }
+
+model Partnership {
+  id          String   @id @default(uuid())
+  
+  // Kişisel Bilgiler
+  firstName   String
+  lastName    String
+  email       String
+  
+  // İş Bilgileri
+  category    String   // İçerik Oluşturucu, Medya, vs.
+  promotionArea String // Giyim, Teknoloji, vs.
+  description String   @db.Text
+  businessName String
+  websiteUrl  String
+  contentAbout String  @db.Text
+  
+  // Konum Bilgileri
+  targetCountry String
+  country      String
+  flatNumber   String?
+  buildingNumber String
+  street       String
+  city         String
+  county       String?
+  postalCode   String
+  taxCountry   String
+  
+  // Onaylar
+  newsletter   Boolean  @default(false)
+  terms        Boolean  @default(true)
+  
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([email])
+  @@index([createdAt])
+}

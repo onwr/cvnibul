@@ -23,6 +23,16 @@
   background: #059669;
 }
 
+/* Hide scrollbar for navigation links */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

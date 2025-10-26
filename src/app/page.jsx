@@ -10,10 +10,30 @@ import CTA from "@/components/cv/CTA";
 import Footer from "@/components/cv/Footer";
 import StepliKayitFormu from "@/components/cv/StepliKayitFormu";
 import TemplateShowcase from "@/components/cv/TemplateShowcase";
-import { FiSearch } from "react-icons/fi";
+import { FiSearch, FiUsers, FiEye } from "react-icons/fi";
+
+// Animasyonlu Sayaç Component
+function AnimatedCounter({ end, duration = 2000 }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTime;
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      setCount(Math.floor(progress * end));
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [end, duration]);
+
+  return <span>{count.toLocaleString("tr-TR")}</span>;
+}
 
 export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [stats, setStats] = useState({ totalUsers: 0, totalVisitors: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,6 +41,23 @@ export default function HomePage() {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/stats/public");
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error("Stats yüklenemedi:", error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchStats();
   }, []);
 
   return (
@@ -76,6 +113,39 @@ export default function HomePage() {
 
       {/* CTA Section */}
       <CTA />
+
+      {/* Stats Section */}
+      <section className="py-16 px-4 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Toplam Kullanıcı */}
+            <div className="bg-white rounded-2xl shadow-xl p-8 text-center transform hover:scale-105 transition-transform">
+              <FiUsers className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+              <h3 className="text-5xl font-bold text-gray-900 mb-2">
+                {statsLoading ? (
+                  <span className="text-gray-400">...</span>
+                ) : (
+                  <AnimatedCounter end={stats.totalUsers} />
+                )}
+              </h3>
+              <p className="text-xl text-gray-600">Toplam Kullanıcı</p>
+            </div>
+
+            {/* Toplam Ziyaretçi */}
+            <div className="bg-white rounded-2xl shadow-xl p-8 text-center transform hover:scale-105 transition-transform">
+              <FiEye className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
+              <h3 className="text-5xl font-bold text-gray-900 mb-2">
+                {statsLoading ? (
+                  <span className="text-gray-400">...</span>
+                ) : (
+                  <AnimatedCounter end={stats.totalVisitors} />
+                )}
+              </h3>
+              <p className="text-xl text-gray-600">Toplam Ziyaretçi</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Footer */}
       <Footer />

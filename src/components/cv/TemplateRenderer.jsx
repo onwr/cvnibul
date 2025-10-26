@@ -2021,7 +2021,10 @@ const TemplateRenderer = ({
 
           {/* Sağ Kolon - 2 Column Grid */}
           <div className={`w-full lg:w-3/4`}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <div
+              className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6"
+              style={{ gridAutoFlow: "dense" }}
+            >
               {/* Harita */}
               {isSectionVisible("location") && formData.haritaKonumu ? (
                 <div className="bg-white rounded-xl shadow-md border-l-4 border-blue-600 p-4 md:p-6">
@@ -2033,12 +2036,40 @@ const TemplateRenderer = ({
                       Konum
                     </div>
                     {isEditing && (
-                      <button
-                        onClick={() => onEditItem("map", formData.haritaKonumu)}
-                        className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
-                      >
-                        <FiEdit3 className="w-3 h-3" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {/* Görünürlük Butonu */}
+                        <button
+                          onClick={() =>
+                            onToggleSectionVisibility?.("location")
+                          }
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-all cursor-pointer relative group"
+                          title={
+                            isSectionVisible("location")
+                              ? "Bölümü Gizle"
+                              : "Bölümü Göster"
+                          }
+                        >
+                          {isSectionVisible("location") ? (
+                            <FiEye className="w-4 h-4 text-gray-600" />
+                          ) : (
+                            <FiEyeOff className="w-4 h-4 text-gray-400" />
+                          )}
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                            {isSectionVisible("location")
+                              ? "Bölümü Gizle"
+                              : "Bölümü Göster"}
+                          </span>
+                        </button>
+                        {/* Düzenle Butonu */}
+                        <button
+                          onClick={() =>
+                            onEditItem("map", formData.haritaKonumu)
+                          }
+                          className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
+                        >
+                          <FiEdit3 className="w-3 h-3" />
+                        </button>
+                      </div>
                     )}
                   </h3>
                   <div className="text-gray-600 mb-3 text-sm">
@@ -2056,26 +2087,46 @@ const TemplateRenderer = ({
                     />
                   </div>
                 </div>
-              ) : (
-                isSectionVisible("location") &&
-                isEditing && (
-                  <div className="bg-white rounded-xl shadow-md border-l-4 border-gray-300 p-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+              ) : isSectionVisible("location") && isEditing ? (
+                <div className="bg-white rounded-xl shadow-md border-l-4 border-gray-300 p-6">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
+                    <div className="flex items-center">
                       <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
                         <FiMapPin className="w-5 h-5 text-gray-600" />
                       </div>
                       Konum
-                    </h3>
-                    <div
-                      className="text-gray-400 text-center py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:text-emerald-600 transition-all"
-                      onClick={() => onEditItem("map", null)}
-                    >
-                      <FiEdit3 className="w-6 h-6 mx-auto mb-2" />
-                      <p className="text-sm font-medium">Konumunuzu ekleyin</p>
                     </div>
+                    {/* Görünürlük Butonu */}
+                    <button
+                      onClick={() => onToggleSectionVisibility?.("location")}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-all cursor-pointer relative group"
+                      title={
+                        isSectionVisible("location")
+                          ? "Bölümü Gizle"
+                          : "Bölümü Göster"
+                      }
+                    >
+                      {isSectionVisible("location") ? (
+                        <FiEye className="w-4 h-4 text-gray-600" />
+                      ) : (
+                        <FiEyeOff className="w-4 h-4 text-gray-400" />
+                      )}
+                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                        {isSectionVisible("location")
+                          ? "Bölümü Gizle"
+                          : "Bölümü Göster"}
+                      </span>
+                    </button>
+                  </h3>
+                  <div
+                    className="text-gray-400 text-center py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:text-emerald-600 transition-all"
+                    onClick={() => onEditItem("map", null)}
+                  >
+                    <FiEdit3 className="w-6 h-6 mx-auto mb-2" />
+                    <p className="text-sm font-medium">Konumunuzu ekleyin</p>
                   </div>
-                )
-              )}
+                </div>
+              ) : null}
 
               {/* Eğitim Ağacı */}
               {isSectionVisible("education") &&
@@ -2095,6 +2146,7 @@ const TemplateRenderer = ({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                   renderItem={(egitim, index) => (
                     <div className="relative pl-6 pb-4 border-l-2 border-emerald-200 last:border-l-0 last:pb-0">
                       <div className="absolute -left-2 top-0 w-4 h-4 bg-emerald-600 rounded-full border-2 border-white shadow-sm" />
@@ -2108,87 +2160,85 @@ const TemplateRenderer = ({
                     </div>
                   )}
                 />
-              ) : (
-                isSectionVisible("education") &&
-                isEditing && (
-                  <EditableCard
-                    title="Eğitim"
-                    icon={<FiBookOpen className="w-5 h-5" />}
-                    sectionKey="education"
-                    items={[]}
-                    borderColor="border-gray-300"
-                    bgColor="bg-gray-100"
-                    iconColor="text-gray-600"
-                    isEditing={isEditing}
-                    onDelete={onDeleteItem}
-                    onMoveUp={onMoveUp}
-                    onMoveDown={onMoveDown}
-                    customization={customization}
-                    renderItem={() => null}
-                    onToggleSectionVisibility={onToggleSectionVisibility}
-                  />
-                )
-              )}
-
-              {/* İş Deneyimi */}
-              {isSectionVisible("experience") &&
-              formData.calismaGecmisi &&
-              formData.calismaGecmisi.length > 0 ? (
+              ) : isSectionVisible("education") && isEditing ? (
                 <EditableCard
-                  title="İş Deneyimi"
-                  icon={<FiBriefcase className="w-5 h-5" />}
-                  sectionKey="experience"
-                  items={formData.calismaGecmisi}
-                  borderColor="border-red-600"
-                  bgColor="bg-red-100"
-                  iconColor="text-red-600"
-                  colSpan="lg:col-span-2"
+                  title="Eğitim"
+                  icon={<FiBookOpen className="w-5 h-5" />}
+                  sectionKey="education"
+                  items={[]}
+                  borderColor="border-gray-300"
+                  bgColor="bg-gray-100"
+                  iconColor="text-gray-600"
                   isEditing={isEditing}
-                  onEdit={onEditItem}
                   onDelete={onDeleteItem}
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   customization={customization}
-                  renderItem={(is, index) => (
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-semibold text-gray-900">
-                        {is.pozisyon}
-                      </h4>
-                      <p className="text-gray-600 text-sm">{is.sirketAdi}</p>
-                      <p className="text-gray-400 text-xs mt-1">
-                        {is.baslangicTarihi} -{" "}
-                        {is.halaCalisiyor ? "Devam Ediyor" : is.bitisTarihi}
-                      </p>
-                      {is.aciklama && (
-                        <p className="text-gray-600 text-xs mt-2">
-                          {is.aciklama}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  renderItem={() => null}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                 />
-              ) : (
-                isSectionVisible("experience") &&
-                isEditing && (
-                  <EditableCard
-                    title="İş Deneyimi"
-                    icon={<FiBriefcase className="w-5 h-5" />}
-                    sectionKey="experience"
-                    items={[]}
-                    borderColor="border-gray-300"
-                    bgColor="bg-gray-100"
-                    iconColor="text-gray-600"
-                    colSpan="lg:col-span-2"
-                    isEditing={isEditing}
-                    onDelete={onDeleteItem}
-                    onMoveUp={onMoveUp}
-                    onMoveDown={onMoveDown}
-                    customization={customization}
-                    renderItem={() => null}
-                    onToggleSectionVisibility={onToggleSectionVisibility}
-                  />
-                )
-              )}
+              ) : null}
+
+              {/* İş Deneyimi */}
+              {isSectionVisible("experience") ? (
+                <div className="lg:col-span-2">
+                  {formData.calismaGecmisi &&
+                  formData.calismaGecmisi.length > 0 ? (
+                    <EditableCard
+                      title="İş Deneyimi"
+                      icon={<FiBriefcase className="w-5 h-5" />}
+                      sectionKey="experience"
+                      items={formData.calismaGecmisi}
+                      borderColor="border-red-600"
+                      bgColor="bg-red-100"
+                      iconColor="text-red-600"
+                      isEditing={isEditing}
+                      onEdit={onEditItem}
+                      onDelete={onDeleteItem}
+                      onMoveUp={onMoveUp}
+                      onMoveDown={onMoveDown}
+                      customization={customization}
+                      onToggleSectionVisibility={onToggleSectionVisibility}
+                      renderItem={(is, index) => (
+                        <div className="border border-gray-200 rounded-lg p-4">
+                          <h4 className="font-semibold text-gray-900">
+                            {is.pozisyon}
+                          </h4>
+                          <p className="text-gray-600 text-sm">
+                            {is.sirketAdi}
+                          </p>
+                          <p className="text-gray-400 text-xs mt-1">
+                            {is.baslangicTarihi} -{" "}
+                            {is.halaCalisiyor ? "Devam Ediyor" : is.bitisTarihi}
+                          </p>
+                          {is.aciklama && (
+                            <p className="text-gray-600 text-xs mt-2">
+                              {is.aciklama}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    />
+                  ) : isEditing ? (
+                    <EditableCard
+                      title="İş Deneyimi"
+                      icon={<FiBriefcase className="w-5 h-5" />}
+                      sectionKey="experience"
+                      items={[]}
+                      borderColor="border-gray-300"
+                      bgColor="bg-gray-100"
+                      iconColor="text-gray-600"
+                      isEditing={isEditing}
+                      onDelete={onDeleteItem}
+                      onMoveUp={onMoveUp}
+                      onMoveDown={onMoveDown}
+                      customization={customization}
+                      renderItem={() => null}
+                      onToggleSectionVisibility={onToggleSectionVisibility}
+                    />
+                  ) : null}
+                </div>
+              ) : null}
 
               {/* Hayat Hikayesi */}
               {isSectionVisible("about") && formData.hayatHikayesi ? (
@@ -2201,14 +2251,38 @@ const TemplateRenderer = ({
                       Hakkımda
                     </div>
                     {isEditing && (
-                      <button
-                        onClick={() =>
-                          onEditItem("about", formData.hayatHikayesi)
-                        }
-                        className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
-                      >
-                        <FiEdit3 className="w-3 h-3" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {/* Görünürlük Butonu */}
+                        <button
+                          onClick={() => onToggleSectionVisibility?.("about")}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-all cursor-pointer relative group"
+                          title={
+                            isSectionVisible("about")
+                              ? "Bölümü Gizle"
+                              : "Bölümü Göster"
+                          }
+                        >
+                          {isSectionVisible("about") ? (
+                            <FiEye className="w-4 h-4 text-gray-600" />
+                          ) : (
+                            <FiEyeOff className="w-4 h-4 text-gray-400" />
+                          )}
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                            {isSectionVisible("about")
+                              ? "Bölümü Gizle"
+                              : "Bölümü Göster"}
+                          </span>
+                        </button>
+                        {/* Düzenle Butonu */}
+                        <button
+                          onClick={() =>
+                            onEditItem("about", formData.hayatHikayesi)
+                          }
+                          className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all"
+                        >
+                          <FiEdit3 className="w-3 h-3" />
+                        </button>
+                      </div>
                     )}
                   </h3>
                   <div
@@ -2220,11 +2294,34 @@ const TemplateRenderer = ({
                 isSectionVisible("about") &&
                 isEditing && (
                   <div className="bg-white rounded-xl shadow-md border-l-4 border-gray-300 p-6 lg:col-span-2">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
-                        <FiBook className="w-5 h-5 text-gray-600" />
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                          <FiBook className="w-5 h-5 text-gray-600" />
+                        </div>
+                        Hakkımda
                       </div>
-                      Hakkımda
+                      {/* Görünürlük Butonu */}
+                      <button
+                        onClick={() => onToggleSectionVisibility?.("about")}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-all cursor-pointer relative group"
+                        title={
+                          isSectionVisible("about")
+                            ? "Bölümü Gizle"
+                            : "Bölümü Göster"
+                        }
+                      >
+                        {isSectionVisible("about") ? (
+                          <FiEye className="w-4 h-4 text-gray-600" />
+                        ) : (
+                          <FiEyeOff className="w-4 h-4 text-gray-400" />
+                        )}
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                          {isSectionVisible("about")
+                            ? "Bölümü Gizle"
+                            : "Bölümü Göster"}
+                        </span>
+                      </button>
                     </h3>
                     <div
                       className="text-gray-400 text-center py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:text-emerald-600 transition-all"
@@ -2257,6 +2354,7 @@ const TemplateRenderer = ({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                   renderItem={(sertifika, index) => (
                     <div className="border-b border-gray-100 pb-3 last:border-0">
                       <h4 className="font-semibold text-gray-900 text-sm">
@@ -2308,6 +2406,7 @@ const TemplateRenderer = ({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                   renderItem={(odul, index) => (
                     <div className="border-b border-gray-100 pb-3 last:border-0">
                       <h4 className="font-semibold text-gray-900 text-sm">
@@ -2357,6 +2456,7 @@ const TemplateRenderer = ({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                   renderItem={(hobi, index) => (
                     <div>
                       <div className="flex items-center justify-between mb-1">
@@ -2501,13 +2601,13 @@ const TemplateRenderer = ({
                   borderColor="border-purple-600"
                   bgColor="bg-purple-100"
                   iconColor="text-purple-600"
-                  colSpan="lg:col-span-2"
                   isEditing={isEditing}
                   onEdit={onEditItem}
                   onDelete={() => {}}
                   onMoveUp={() => {}}
                   onMoveDown={() => {}}
                   customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                   renderItem={(photo, index) => (
                     <img
                       src={photo.url}
@@ -2527,7 +2627,6 @@ const TemplateRenderer = ({
                     borderColor="border-gray-300"
                     bgColor="bg-gray-100"
                     iconColor="text-gray-600"
-                    colSpan="lg:col-span-2"
                     isEditing={isEditing}
                     onEdit={onEditItem}
                     onDelete={() => {}}
@@ -2564,12 +2663,12 @@ const TemplateRenderer = ({
                   borderColor="border-pink-600"
                   bgColor="bg-pink-100"
                   iconColor="text-pink-600"
-                  colSpan="lg:col-span-2"
                   isEditing={isEditing}
                   onDelete={onDeleteItem}
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                   renderItem={(yayin, index) => (
                     <div className="border border-gray-200 rounded-lg p-4">
                       <h4 className="font-semibold text-gray-900 text-sm">
@@ -2591,7 +2690,6 @@ const TemplateRenderer = ({
                     borderColor="border-gray-300"
                     bgColor="bg-gray-100"
                     iconColor="text-gray-600"
-                    colSpan="lg:col-span-2"
                     isEditing={isEditing}
                     onDelete={onDeleteItem}
                     onMoveUp={onMoveUp}
@@ -2620,6 +2718,7 @@ const TemplateRenderer = ({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                   renderItem={(sosyal, index) => (
                     <div className="border-b border-gray-100 pb-3 last:border-0">
                       <h4 className="font-semibold text-gray-900 text-sm">
@@ -2671,6 +2770,7 @@ const TemplateRenderer = ({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                   renderItem={(ref, index) => (
                     <div className="border-b border-gray-100 pb-3 last:border-0">
                       <h4 className="font-semibold text-gray-900 text-sm">
@@ -2713,12 +2813,12 @@ const TemplateRenderer = ({
                   borderColor="border-indigo-600"
                   bgColor="bg-indigo-100"
                   iconColor="text-indigo-600"
-                  colSpan="lg:col-span-2"
                   isEditing={isEditing}
                   onDelete={onDeleteItem}
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   customization={customization}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
                   renderItem={(hizmet, index) => (
                     <div className="border border-gray-200 rounded-lg p-4">
                       <h4 className="font-semibold text-gray-900">
@@ -2746,27 +2846,24 @@ const TemplateRenderer = ({
                     </div>
                   )}
                 />
-              ) : (
-                isEditing && (
-                  <EditableCard
-                    title="Hizmetler"
-                    icon={<FiTool className="w-5 h-5" />}
-                    sectionKey="services"
-                    items={[]}
-                    borderColor="border-gray-300"
-                    bgColor="bg-gray-100"
-                    iconColor="text-gray-600"
-                    colSpan="lg:col-span-2"
-                    isEditing={isEditing}
-                    onDelete={onDeleteItem}
-                    onMoveUp={onMoveUp}
-                    onMoveDown={onMoveDown}
-                    customization={customization}
-                    renderItem={() => null}
-                    onToggleSectionVisibility={onToggleSectionVisibility}
-                  />
-                )
-              )}
+              ) : isEditing ? (
+                <EditableCard
+                  title="Hizmetler"
+                  icon={<FiTool className="w-5 h-5" />}
+                  sectionKey="services"
+                  items={[]}
+                  borderColor="border-gray-300"
+                  bgColor="bg-gray-100"
+                  iconColor="text-gray-600"
+                  isEditing={isEditing}
+                  onDelete={onDeleteItem}
+                  onMoveUp={onMoveUp}
+                  onMoveDown={onMoveDown}
+                  customization={customization}
+                  renderItem={() => null}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
+                />
+              ) : null}
 
               {/* Network / Bağlantılar */}
               {isSectionVisible("network") &&
@@ -2780,7 +2877,6 @@ const TemplateRenderer = ({
                   borderColor="border-purple-300"
                   bgColor="bg-purple-100"
                   iconColor="text-purple-600"
-                  colSpan="lg:col-span-2"
                   isEditing={isEditing}
                   onEdit={onEditItem}
                   onDelete={onDeleteItem}
@@ -2824,7 +2920,6 @@ const TemplateRenderer = ({
                     borderColor="border-purple-300"
                     bgColor="bg-purple-100"
                     iconColor="text-purple-600"
-                    colSpan="lg:col-span-2"
                     isEditing={isEditing}
                     onEdit={onEditItem}
                     onDelete={onDeleteItem}
@@ -2849,7 +2944,6 @@ const TemplateRenderer = ({
                   borderColor="border-amber-300"
                   bgColor="bg-amber-100"
                   iconColor="text-amber-600"
-                  colSpan="lg:col-span-2"
                   isEditing={isEditing}
                   onEdit={onEditItem}
                   onDelete={onDeleteItem}
@@ -2879,7 +2973,6 @@ const TemplateRenderer = ({
                     borderColor="border-amber-300"
                     bgColor="bg-amber-100"
                     iconColor="text-amber-600"
-                    colSpan="lg:col-span-2"
                     isEditing={isEditing}
                     onEdit={onEditItem}
                     onDelete={onDeleteItem}
@@ -2904,7 +2997,6 @@ const TemplateRenderer = ({
                   borderColor="border-green-300"
                   bgColor="bg-green-100"
                   iconColor="text-green-600"
-                  colSpan="lg:col-span-2"
                   isEditing={isEditing}
                   onEdit={onEditItem}
                   onDelete={onDeleteItem}
@@ -2931,7 +3023,6 @@ const TemplateRenderer = ({
                     borderColor="border-green-300"
                     bgColor="bg-green-100"
                     iconColor="text-green-600"
-                    colSpan="lg:col-span-2"
                     isEditing={isEditing}
                     onEdit={onEditItem}
                     onDelete={onDeleteItem}

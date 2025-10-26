@@ -96,34 +96,25 @@ export default function HakkindaPage() {
             </div>
           </div>
 
-          {/* Geliştirici Bilgisi */}
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-xl p-8 md:p-12 text-white">
-            <div className="text-center">
-              <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white/30">
-                <span className="text-4xl font-bold">AÖ</span>
-              </div>
-              <h2 className="text-3xl font-bold mb-2">Adem Özkul</h2>
-              <p className="text-blue-100 text-lg mb-4">Yazılımcı</p>
-              <p className="text-white/90 max-w-2xl mx-auto leading-relaxed">
-                Modern web teknolojileri kullanarak kullanıcı dostu ve etkili
-                çözümler geliştiriyorum. CvHazirla platformunu, iş arayanların
-                hayatını kolaylaştırmak ve profesyonel CV'ler oluşturmalarına
-                yardımcı olmak amacıyla geliştirdim.
-              </p>
-            </div>
-          </div>
-
           {/* İletişim CTA */}
           <div className="mt-12 text-center">
             <p className="text-gray-600 mb-4">
               Sorularınız veya önerileriniz için bizimle iletişime geçin
             </p>
-            <a
-              href="/"
-              className="inline-block px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl"
-            >
-              Ana Sayfaya Dön
-            </a>
+            <div className="flex gap-4 justify-center">
+              <a
+                href="/"
+                className="inline-block px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl"
+              >
+                Ana Sayfaya Dön
+              </a>
+              <a
+                href="/kurucu"
+                className="inline-block px-8 py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl"
+              >
+                Kurucu Hakkında
+              </a>
+            </div>
           </div>
         </div>
       </main>

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
+import Navigation from "@/components/cv/Navigation";
 
 const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false });
 import { motion, AnimatePresence } from "framer-motion";
@@ -1593,6 +1594,8 @@ function TemplatesContent() {
 
   // Section Visibility Toggle
   const handleToggleSectionVisibility = (sectionKey) => {
+    console.log("🔄 Toggling section:", sectionKey);
+
     // Custom section kontrolü
     if (sectionKey.startsWith("custom_")) {
       const customSectionId = sectionKey.replace("custom_", "");
@@ -1603,6 +1606,9 @@ function TemplatesContent() {
     // Normal section
     setCustomization((prev) => {
       const currentVisibility = prev.sectionVisibility?.[sectionKey] ?? true;
+      console.log(
+        `📊 Section: ${sectionKey} | Current: ${currentVisibility} → New: ${!currentVisibility}`
+      );
 
       return {
         ...prev,
@@ -2015,11 +2021,16 @@ function TemplatesContent() {
   // Şablon seçildi - CV düzenleme arayüzü
   return (
     <div className="min-h-screen bg-gray-800 relative">
+      {/* Navigation - Her zaman üstte görünsün */}
+      <div className="fixed top-0 left-0 right-0 z-[60]">
+        <Navigation isScrolled={false} />
+      </div>
+
       {/* Arkaplan Önizleme veya Boş Ekran */}
       {selectedTheme ? (
         <div
-          className={`absolute inset-0 bg-gray-900 overflow-y-auto transition-all duration-300 ${
-            isAdminEdit ? "pt-20" : ""
+          className={`relative bg-gray-900 overflow-y-auto transition-all duration-300 min-h-screen pt-24 ${
+            isAdminEdit ? "pt-40" : "pt-24"
           } ${isSidebarOpen ? "lg:ml-80" : ""}`}
         >
           {/* CV Önizleme - TemplateRenderer Component */}
@@ -2250,7 +2261,7 @@ function TemplatesContent() {
 
       {/* Düzenleme Modu Üst Bar - Sadece admin edit modunda göster */}
       {isAdminEdit && (
-        <div className="fixed top-0 left-0 right-0 bg-emerald-400 shadow-lg z-50">
+        <div className="fixed left-0 right-0 top-[72px] bg-emerald-400 shadow-lg z-50">
           <div className="max-w-7xl mx-auto p-4">
             <div className="flex justify-between items-center">
               <div>

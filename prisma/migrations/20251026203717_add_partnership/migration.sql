@@ -1,0 +1,30 @@
+-- CreateTable
+CREATE TABLE `Partnership` (
+    `id` VARCHAR(191) NOT NULL,
+    `firstName` VARCHAR(191) NOT NULL,
+    `lastName` VARCHAR(191) NOT NULL,
+    `email` VARCHAR(191) NOT NULL,
+    `category` VARCHAR(191) NOT NULL,
+    `promotionArea` VARCHAR(191) NOT NULL,
+    `description` TEXT NOT NULL,
+    `businessName` VARCHAR(191) NOT NULL,
+    `websiteUrl` VARCHAR(191) NOT NULL,
+    `contentAbout` TEXT NOT NULL,
+    `targetCountry` VARCHAR(191) NOT NULL,
+    `country` VARCHAR(191) NOT NULL,
+    `flatNumber` VARCHAR(191) NULL,
+    `buildingNumber` VARCHAR(191) NOT NULL,
+    `street` VARCHAR(191) NOT NULL,
+    `city` VARCHAR(191) NOT NULL,
+    `county` VARCHAR(191) NULL,
+    `postalCode` VARCHAR(191) NOT NULL,
+    `taxCountry` VARCHAR(191) NOT NULL,
+    `newsletter` BOOLEAN NOT NULL DEFAULT false,
+    `terms` BOOLEAN NOT NULL DEFAULT true,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `Partnership_email_idx`(`email`),
+    INDEX `Partnership_createdAt_idx`(`createdAt`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
